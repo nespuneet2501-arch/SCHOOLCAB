@@ -192,7 +192,9 @@ export default function AdminPanel({
         setDbConfig(freshConfig);
         // Also keep Firestore in sync so that Vercel / offline clients can see the state!
         try {
-          await saveSupabaseConfig(freshConfig);
+          saveSupabaseConfig(freshConfig).catch(fsErr => {
+            console.warn("Could not sync Supabase config to Firestore in background:", fsErr);
+          });
         } catch (fsErr) {
           console.warn("Could not sync Supabase config to Firestore:", fsErr);
         }
@@ -1247,6 +1249,21 @@ export default function AdminPanel({
                 <Sparkles className="w-4 h-4 text-amber-500" />
                 <h4 className="text-xs font-bold text-slate-800">Supabase Easy Connection Wizard</h4>
               </div>
+
+              {typeof window !== 'undefined' && window.location.hostname.includes('vercel.app') && (
+                <div className="p-3.5 bg-amber-50 border border-amber-200 text-amber-800 rounded-lg text-xs leading-relaxed space-y-1 font-sans">
+                  <p className="font-bold">⚠️ RUN CONFIGURATION IN GOOGLE AI STUDIO</p>
+                  <p>
+                    Because this Vercel site is a static frontend deployment, your browser cannot execute direct database handshakes or database seeding from this domain.
+                  </p>
+                  <p className="font-medium">
+                    👉 <strong>Action Required:</strong> Open your Google AI Studio workspace preview, navigate to the <strong>ADMINISTRATION</strong> tab, and click <strong>"Configure & Complete 100% Setup"</strong> there (where the secure server container runs).
+                  </p>
+                  <p>
+                    Once successfully configured in AI Studio, Vercel will automatically fetch the credentials from Firestore and show <strong>CONNECTED & ACTIVE</strong>!
+                  </p>
+                </div>
+              )}
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-1">
