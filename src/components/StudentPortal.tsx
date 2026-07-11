@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Post, Cabinet, StudentApplication, Achievement } from '../types';
 import { FileText, Plus, Trash2, CheckSquare, Search, Award, Printer, Clock, FileUp, Camera, AlertCircle } from 'lucide-react';
+import { User } from 'firebase/auth';
 
 interface StudentPortalProps {
   posts: Post[];
@@ -9,6 +10,7 @@ interface StudentPortalProps {
   onSubmitApplication: (app: Omit<StudentApplication, 'id' | 'status' | 'submittedAt'>) => void;
   onUpdateApplication: (id: string, app: Partial<StudentApplication>) => void;
   deadline: string;
+  user?: User | null;
 }
 
 export default function StudentPortal({
@@ -17,7 +19,8 @@ export default function StudentPortal({
   applications,
   onSubmitApplication,
   onUpdateApplication,
-  deadline
+  deadline,
+  user
 }: StudentPortalProps) {
   // Navigation tabs within Student Portal
   const [activeTab, setActiveTab] = useState<'apply' | 'track'>('track');
@@ -33,6 +36,14 @@ export default function StudentPortal({
       .then(data => setRegisteredList(data || []))
       .catch(err => console.error(err));
   }, []);
+
+  // Auto-fill and lock details if user is logged in
+  React.useEffect(() => {
+    if (user) {
+      setName(user.displayName || '');
+      setEmail(user.email || '');
+    }
+  }, [user]);
   
   // Status tracker state
   const [searchAdmNum, setSearchAdmNum] = useState('');
@@ -595,13 +606,23 @@ export default function StudentPortal({
             
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
               <div className="space-y-1">
-                <label className="text-xs font-bold text-slate-600 font-sans">Student Full Name</label>
+                <div className="flex justify-between items-center">
+                  <label className="text-xs font-bold text-slate-600 font-sans">Student Full Name</label>
+                  {user && (
+                    <span className="text-[9px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                      Google Verified
+                    </span>
+                  )}
+                </div>
                 <input
                   type="text"
                   placeholder="e.g. Aarav Goel"
                   value={name}
                   onChange={e => setName(e.target.value)}
-                  className="w-full px-3.5 py-2 text-xs border border-slate-350 rounded-lg text-slate-800 focus:ring-1 focus:ring-slate-900 focus:border-slate-900"
+                  disabled={!!user}
+                  className={`w-full px-3.5 py-2 text-xs border border-slate-350 rounded-lg text-slate-800 focus:ring-1 focus:ring-slate-900 focus:border-slate-900 ${
+                    user ? 'bg-slate-100 cursor-not-allowed text-slate-500' : ''
+                  }`}
                 />
               </div>
 

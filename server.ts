@@ -10,7 +10,7 @@ dotenv.config();
 
 // Initialize Express
 const app = express();
-const PORT = 3000;
+const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
 
 // Setup JSON body parsing with high limit for photos / certificates
 app.use(express.json({ limit: "50mb" }));
@@ -1703,14 +1703,35 @@ ON CONFLICT DO NOTHING;
    VITE DEVELOPEMENT ENVIRONMENT RUNTIME MIDDLEWARE
    ========================================================================== */
 async function init() {
-  if (process.env.NODE_ENV !== "production") {
+  const isProduction = process.env.NODE_ENV === "production" || 
+                       !fs.existsSync(path.join(process.cwd(), "server.ts")) ||
+                       (process.argv[1] && (process.argv[1].includes("dist") || process.argv[1].includes("server.cjs")));
+
+  console.log(`[Init] Starting server. isProduction=${isProduction}, NODE_ENV=${process.env.NODE_ENV}, argv=${process.argv.join(" ")}`);
+
+  if (!isProduction) {
     const vite = await createViteServer({
       server: { middlewareMode: true },
       appType: "spa"
     });
     app.use(vite.middlewares);
   } else {
-    const distPath = path.join(process.cwd(), "dist");
+    let distPath = path.join(process.cwd(), "dist");
+    if (!fs.existsSync(path.join(distPath, "index.html"))) {
+      const dirnamePath = typeof __dirname !== "undefined" ? __dirname : "";
+      if (dirnamePath) {
+        if (fs.existsSync(path.join(dirnamePath, "index.html"))) {
+          distPath = dirnamePath;
+        } else if (fs.existsSync(path.join(dirnamePath, "..", "dist", "index.html"))) {
+          distPath = path.join(dirnamePath, "..", "dist");
+        }
+      }
+    }
+    if (!fs.existsSync(path.join(distPath, "index.html"))) {
+      if (fs.existsSync(path.join(process.cwd(), "index.html"))) {
+        distPath = process.cwd();
+      }
+    }
     app.use(express.static(distPath));
     app.get("*", (req, res) => {
       res.sendFile(path.join(distPath, "index.html"));

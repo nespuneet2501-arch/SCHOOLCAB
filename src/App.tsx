@@ -8,11 +8,18 @@ import AnalyticsDashboard from './components/AnalyticsDashboard';
 import ReportsPanel from './components/ReportsPanel';
 import CandidateProfileView from './components/CandidateProfileView';
 import { LayoutDashboard, Award, Settings, BarChart3, Users, Clock, Mail, ChevronRight, Eye, ShieldAlert } from 'lucide-react';
+import { auth, db, googleProvider, signInWithPopup, signOut } from './firebase';
+import { onAuthStateChanged, User } from 'firebase/auth';
+import { doc, setDoc, getDoc } from 'firebase/firestore';
 
 export default function App() {
   const [role, setRole] = useState<'student' | 'panel' | 'admin'>('student');
   const [activeTab, setActiveTab] = useState<'home' | 'apply' | 'panel' | 'admin' | 'analytics'>('home');
   const [analyticsSubTab, setAnalyticsSubTab] = useState<'visual' | 'reports'>('reports');
+
+  // Firebase auth & Firestore states
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [firebaseLoading, setFirebaseLoading] = useState(true);
 
   // Server state
   const [config, setConfig] = useState<SystemConfig | null>(null);
@@ -24,6 +31,57 @@ export default function App() {
   const [isResetting, setIsResetting] = useState(false);
   const [selectedProfileApp, setSelectedProfileApp] = useState<StudentApplication | null>(null);
   const [networkError, setNetworkError] = useState('');
+
+  // Firebase Auth sync effect
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      setCurrentUser(user);
+      setFirebaseLoading(false);
+      if (user) {
+        try {
+          const userDocRef = doc(db, 'users', user.uid);
+          await setDoc(userDocRef, {
+            uid: user.uid,
+            displayName: user.displayName || 'GD Goenka Leader',
+            email: user.email,
+            photoURL: user.photoURL,
+            lastLogin: new Date().toISOString()
+          }, { merge: true });
+
+          // Fetch user's custom role if saved
+          const userSnap = await getDoc(userDocRef);
+          if (userSnap.exists()) {
+            const userData = userSnap.data();
+            if (userData.role) {
+              setRole(userData.role);
+            }
+          }
+        } catch (e) {
+          console.error("Firestore user sync error:", e);
+        }
+      }
+    });
+    return () => unsubscribe();
+  }, []);
+
+  const handleSignIn = async () => {
+    try {
+      const result = await signInWithPopup(auth, googleProvider);
+      console.log('Successfully signed in user:', result.user.email);
+    } catch (err: any) {
+      console.error(err);
+      alert('Sign-In failed: ' + (err.message || err));
+    }
+  };
+
+  const handleSignOut = async () => {
+    try {
+      await signOut(auth);
+      setRole('student');
+    } catch (err: any) {
+      console.error(err);
+    }
+  };
 
   // Fetch initial data
   const loadAllData = async () => {
@@ -282,6 +340,9 @@ export default function App() {
           onChangeRole={handleRoleChange}
           onResetDemo={handleResetDemo}
           isResetting={isResetting}
+          user={currentUser}
+          onSignIn={handleSignIn}
+          onSignOut={handleSignOut}
         />
 
         {/* Mobile quick-nav list */}
@@ -577,6 +638,7 @@ export default function App() {
                 onSubmitApplication={handleSubmitApplication}
                 onUpdateApplication={handleUpdateApplication}
                 deadline={config.applicationDeadline}
+                user={currentUser}
               />
             )}
 

@@ -1,6 +1,7 @@
 import React from 'react';
 import { SchoolBranding } from '../types';
 import { Shield, Users, Award, RefreshCw, Calendar } from 'lucide-react';
+import { User } from 'firebase/auth';
 
 interface BrandingHeaderProps {
   branding: SchoolBranding;
@@ -9,6 +10,9 @@ interface BrandingHeaderProps {
   onChangeRole: (role: 'student' | 'panel' | 'admin') => void;
   onResetDemo: () => void;
   isResetting: boolean;
+  user: User | null;
+  onSignIn: () => void;
+  onSignOut: () => void;
 }
 
 export default function BrandingHeader({
@@ -17,7 +21,10 @@ export default function BrandingHeader({
   currentRole,
   onChangeRole,
   onResetDemo,
-  isResetting
+  isResetting,
+  user,
+  onSignIn,
+  onSignOut
 }: BrandingHeaderProps) {
   const deadlineDate = new Date(deadline);
   const isDeadlinePassed = new Date() > deadlineDate;
@@ -93,6 +100,42 @@ export default function BrandingHeader({
             </span>
           )}
         </div>
+
+        {/* Google Authentication Profile / Button */}
+        {user ? (
+          <div className="flex items-center gap-2.5 bg-slate-100 border border-slate-200/80 px-3 py-1 rounded-xl shadow-xs">
+            <img
+              src={user.photoURL || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=80&auto=format&fit=crop&q=60'}
+              alt={user.displayName || 'User'}
+              className="w-7 h-7 rounded-full border border-slate-300"
+              referrerPolicy="no-referrer"
+            />
+            <div className="hidden lg:block text-left max-w-[120px]">
+              <p className="text-[10px] font-bold text-slate-800 leading-tight truncate">
+                {user.displayName}
+              </p>
+              <p className="text-[8px] text-slate-500 font-mono leading-none truncate">
+                {user.email}
+              </p>
+            </div>
+            <button
+              onClick={onSignOut}
+              className="text-[10px] font-bold text-rose-600 hover:text-rose-700 px-2 py-1 hover:bg-rose-50 rounded-lg transition"
+            >
+              Sign Out
+            </button>
+          </div>
+        ) : (
+          <button
+            onClick={onSignIn}
+            className="flex items-center gap-2 px-3.5 py-1.5 text-xs font-bold rounded-xl bg-slate-900 hover:bg-slate-800 text-white shadow-xs transition"
+          >
+            <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24">
+              <path d="M12.24 10.285V14.4h6.887c-.648 2.41-2.519 4.114-5.136 4.114A5.514 5.514 0 0 1 8.5 13a5.514 5.514 0 0 1 5.491-5.514c1.474 0 2.805.556 3.822 1.464l3.125-3.125C18.98 3.856 16.638 3 13.991 3 8.473 3 4 7.473 4 13s4.473 10 9.991 10c5.753 0 10.009-4.04 10.009-10 0-.675-.06-1.32-.172-1.954l-11.588.239z" />
+            </svg>
+            <span>Sign In</span>
+          </button>
+        )}
 
         {/* Demo reset button */}
         <button
