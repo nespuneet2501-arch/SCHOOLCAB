@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { SystemConfig, Cabinet, Post, EvaluationCriterion, AchievementMatrixItem, EmailLog, getBackendUrl } from '../types';
 import { Settings, Shield, Edit, Plus, Trash2, Mail, Database, Check, CheckSquare, Clock, Users, Upload, RefreshCw, FileText, Sparkles, AlertTriangle } from 'lucide-react';
-import { saveRegisteredStudent, fetchRegisteredStudents } from '../services/dbService';
+import { saveRegisteredStudent, fetchRegisteredStudents, fetchSupabaseConfig, saveSupabaseConfig } from '../services/dbService';
 
 interface AdminPanelProps {
   config: SystemConfig;
@@ -148,7 +148,11 @@ export default function AdminPanel({
         message: `🎉 Success! Fully Connected to Supabase! We successfully: 1) Created all tables, 2) Seeded all candidates, and 3) Enabled automatic background syncing!`
       });
     } catch (err: any) {
-      setWizardStatus({ type: 'error', message: err.message || 'Wizard failed at some point.' });
+      let msg = err.message || 'Wizard failed at some point.';
+      if (msg.includes('Failed to fetch') || msg.includes('failed to fetch') || msg.includes('NetworkError')) {
+        msg = 'Connection Blocked (Failed to fetch). Because this Vercel site is deployed externally, browser security prevents direct cross-origin API requests to your private AI Studio dev container.\n\n👉 ACTION REQUIRED: Open your Google AI Studio workspace preview, navigate to the ADMINISTRATION tab, and click "Configure & Complete 100% Setup" there (where the secure server backend resides). Once connected there, the status and credentials will automatically synchronize to Vercel!';
+      }
+      setWizardStatus({ type: 'error', message: msg });
     } finally {
       setWizardRunning(false);
     }
@@ -179,15 +183,37 @@ export default function AdminPanel({
       const cRes = await fetch(getBackendUrl() + '/api/supabase/config');
       if (cRes.ok) {
         const cData = await cRes.json();
-        setDbConfig({
+        const freshConfig = {
           connectionString: cData.connectionString || '',
           connected: cData.connected || false,
           useSupabase: cData.useSupabase || false,
           lastSyncedAt: cData.lastSyncedAt || ''
-        });
+        };
+        setDbConfig(freshConfig);
+        // Also keep Firestore in sync so that Vercel / offline clients can see the state!
+        try {
+          await saveSupabaseConfig(freshConfig);
+        } catch (fsErr) {
+          console.warn("Could not sync Supabase config to Firestore:", fsErr);
+        }
+      } else {
+        throw new Error("Server config endpoint non-ok response");
       }
     } catch (e) {
-      console.warn("Supabase config API offline", e);
+      console.warn("Supabase config API offline, fetching from Firestore...", e);
+      try {
+        const fConfig = await fetchSupabaseConfig();
+        if (fConfig) {
+          setDbConfig({
+            connectionString: fConfig.connectionString || '',
+            connected: fConfig.connected || false,
+            useSupabase: fConfig.useSupabase || false,
+            lastSyncedAt: fConfig.lastSyncedAt || ''
+          });
+        }
+      } catch (fsReadErr) {
+        console.error("Firestore read error for Supabase config:", fsReadErr);
+      }
     }
   };
 
@@ -1177,18 +1203,31 @@ export default function AdminPanel({
                   type="button"
                   onClick={async () => {
                     const toggled = !dbConfig.useSupabase;
+                    const updatedConfig = { ...dbConfig, useSupabase: toggled };
                     try {
                       const res = await fetch(getBackendUrl() + '/api/supabase/config', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ ...dbConfig, useSupabase: toggled })
+                        body: JSON.stringify(updatedConfig)
                       });
                       if (res.ok) {
-                        setDbConfig({ ...dbConfig, useSupabase: toggled });
+                        setDbConfig(updatedConfig);
+                        try {
+                          await saveSupabaseConfig(updatedConfig);
+                        } catch (fsErr) {}
                         alert(`Automated Supabase Background Sync ${toggled ? 'Enabled' : 'Disabled'}!`);
+                      } else {
+                        throw new Error('Config API endpoint returned error.');
                       }
                     } catch (e: any) {
-                      alert(e.message);
+                      console.warn("Could not reach backend API, saving to Firestore directly:", e);
+                      try {
+                        setDbConfig(updatedConfig);
+                        await saveSupabaseConfig(updatedConfig);
+                        alert(`Supabase Background Sync ${toggled ? 'Active' : 'Disabled'}! (Configured via Google Cloud Firestore. Background synchronization runs whenever your AI Studio container is online).`);
+                      } catch (fsErr: any) {
+                        alert(`Failed to save configuration: ${fsErr.message || fsErr}`);
+                      }
                     }
                   }}
                   className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${
@@ -1329,7 +1368,11 @@ export default function AdminPanel({
                           throw new Error(data.error || 'Connection failed.');
                         }
                       } catch (e: any) {
-                        setTestStatus({ type: 'error', message: e.message || 'Connection handshake failed.' });
+                        let msg = e.message || 'Connection handshake failed.';
+                        if (msg.includes('Failed to fetch') || msg.includes('failed to fetch') || msg.includes('NetworkError')) {
+                          msg = 'Failed to fetch (CORS). Please perform connection testing in your Google AI Studio workspace preview administration panel.';
+                        }
+                        setTestStatus({ type: 'error', message: msg });
                       }
                     }}
                     className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 rounded-xl text-xs font-bold font-sans flex items-center gap-1.5 transition"
@@ -1358,7 +1401,11 @@ export default function AdminPanel({
                           throw new Error(data.error || 'DDL provisioning failed.');
                         }
                       } catch (e: any) {
-                        setProvisionStatus({ type: 'error', message: e.message || 'Provisioning failed.' });
+                        let msg = e.message || 'Provisioning failed.';
+                        if (msg.includes('Failed to fetch') || msg.includes('failed to fetch') || msg.includes('NetworkError')) {
+                          msg = 'Failed to fetch (CORS). Please perform auto-provisioning and seeding in your Google AI Studio workspace preview administration panel.';
+                        }
+                        setProvisionStatus({ type: 'error', message: msg });
                       }
                     }}
                     className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold font-sans flex items-center gap-1.5 transition shadow-xs"

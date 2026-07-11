@@ -1,6 +1,6 @@
 import { db } from "../firebase";
 import { doc, getDoc, setDoc, getDocs, collection, updateDoc, writeBatch } from "firebase/firestore";
-import { SystemConfig, StudentApplication, RegisteredStudent, EmailLog } from "../types";
+import { SystemConfig, StudentApplication, RegisteredStudent, EmailLog, SupabaseConfig } from "../types";
 import { DEFAULT_CONFIG, DEFAULT_REGISTERED_STUDENTS, generateDefaultApplications } from "../data/defaults";
 
 // Cache data locally in case of offline fallback
@@ -173,3 +173,27 @@ export async function saveEmailLog(log: EmailLog): Promise<void> {
     throw err;
   }
 }
+
+export async function fetchSupabaseConfig(): Promise<SupabaseConfig | null> {
+  try {
+    const docRef = doc(db, "system_config", "supabase_config");
+    const docSnap = await getDoc(docRef);
+    if (docSnap.exists()) {
+      return docSnap.data() as SupabaseConfig;
+    }
+  } catch (err) {
+    console.error("Failed to fetch Supabase config from Firestore:", err);
+  }
+  return null;
+}
+
+export async function saveSupabaseConfig(config: SupabaseConfig): Promise<void> {
+  try {
+    const docRef = doc(db, "system_config", "supabase_config");
+    await setDoc(docRef, config);
+  } catch (err) {
+    console.error("Failed to save Supabase config to Firestore:", err);
+    throw err;
+  }
+}
+
