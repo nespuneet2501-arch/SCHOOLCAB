@@ -1,0 +1,6 @@
+{
+  "name": "GD Goenka School Cabinet Selection & Election Management System",
+  "description": "Enterprise-grade, configuration-driven selection and election management system for GD Goenka Student Council featuring dynamic evaluation, AI recommendation engine, real-time analytics, and Supabase SQL generator.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
