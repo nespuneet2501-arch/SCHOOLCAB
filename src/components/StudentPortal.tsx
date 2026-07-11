@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Post, Cabinet, StudentApplication, Achievement } from '../types';
 import { FileText, Plus, Trash2, CheckSquare, Search, Award, Printer, Clock, FileUp, Camera, AlertCircle } from 'lucide-react';
 import { User } from 'firebase/auth';
+import { fetchRegisteredStudents } from '../services/dbService';
 
 interface StudentPortalProps {
   posts: Post[];
@@ -32,9 +33,16 @@ export default function StudentPortal({
 
   React.useEffect(() => {
     fetch('/api/registered-students')
-      .then(r => r.json())
+      .then(r => {
+        if (!r.ok) throw new Error();
+        return r.json();
+      })
       .then(data => setRegisteredList(data || []))
-      .catch(err => console.error(err));
+      .catch(() => {
+        fetchRegisteredStudents()
+          .then(data => setRegisteredList(data || []))
+          .catch(err => console.error("Firestore registered students error:", err));
+      });
   }, []);
 
   // Auto-fill and lock details if user is logged in

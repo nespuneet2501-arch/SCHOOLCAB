@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { SystemConfig, Cabinet, Post, EvaluationCriterion, AchievementMatrixItem, EmailLog } from '../types';
 import { Settings, Shield, Edit, Plus, Trash2, Mail, Database, Check, CheckSquare, Clock, Users, Upload, RefreshCw, FileText, Sparkles, AlertTriangle } from 'lucide-react';
+import { saveRegisteredStudent, fetchRegisteredStudents } from '../services/dbService';
 
 interface AdminPanelProps {
   config: SystemConfig;
@@ -46,7 +47,21 @@ export default function AdminPanel({
       if (sRes.ok) {
         const sData = await sRes.json();
         setStudents(sData);
+      } else {
+        const sData = await fetchRegisteredStudents();
+        setStudents(sData || []);
       }
+    } catch (e) {
+      console.warn("registered-students API offline, loading from Firestore fallback", e);
+      try {
+        const sData = await fetchRegisteredStudents();
+        setStudents(sData || []);
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    try {
       const cRes = await fetch('/api/supabase/config');
       if (cRes.ok) {
         const cData = await cRes.json();
@@ -58,7 +73,7 @@ export default function AdminPanel({
         });
       }
     } catch (e) {
-      console.error(e);
+      console.warn("Supabase config API offline", e);
     }
   };
 
@@ -734,18 +749,20 @@ export default function AdminPanel({
                   if (!newStudentName || !newStudentAdmn) {
                     return alert('Name and Admission Number are required.');
                   }
+                  const studentPayload = {
+                    id: `reg-${Date.now()}`,
+                    name: newStudentName,
+                    admissionNumber: newStudentAdmn,
+                    class: newStudentClass,
+                    section: newStudentSec,
+                    rollNumber: newStudentRoll,
+                    gender: newStudentGender
+                  };
                   try {
                     const res = await fetch('/api/registered-students', {
                       method: 'POST',
                       headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({
-                        name: newStudentName,
-                        admissionNumber: newStudentAdmn,
-                        class: newStudentClass,
-                        section: newStudentSec,
-                        rollNumber: newStudentRoll,
-                        gender: newStudentGender
-                      })
+                      body: JSON.stringify(studentPayload)
                     });
                     if (res.ok) {
                       setNewStudentName('');
@@ -753,9 +770,21 @@ export default function AdminPanel({
                       setNewStudentRoll('');
                       loadAdminExtraData();
                       alert('Student pre-registered successfully!');
+                    } else {
+                      throw new Error();
                     }
                   } catch (e: any) {
-                    alert(e.message);
+                    console.warn("API pre-register offline, saving directly to Firestore", e);
+                    try {
+                      await saveRegisteredStudent(studentPayload);
+                      setNewStudentName('');
+                      setNewStudentAdmn('');
+                      setNewStudentRoll('');
+                      loadAdminExtraData();
+                      alert('Student pre-registered successfully in cloud database!');
+                    } catch (fsErr: any) {
+                      alert('Failed to register student: ' + fsErr.message);
+                    }
                   }
                 }}
                 className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold font-sans flex items-center gap-1.5 transition"
@@ -884,23 +913,39 @@ export default function AdminPanel({
                       parsedStudents.push(studentObj);
                     }
 
-                    const bulkRes = await fetch('/api/registered-students/bulk', {
-                      method: 'POST',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({ students: parsedStudents, mode: bulkMode })
-                    });
+                    try {
+                      const bulkRes = await fetch('/api/registered-students/bulk', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ students: parsedStudents, mode: bulkMode })
+                      });
 
-                    if (bulkRes.ok) {
-                      const finalData = await bulkRes.json();
-                      setStudents(finalData.registeredStudents);
-                      setBulkText('');
-                      setUploadStatus(`Successfully processed ${parsedStudents.length} student records!`);
-                      setTimeout(() => setUploadStatus(''), 5000);
-                    } else {
-                      throw new Error('Failed to post bulk array to API');
+                      if (bulkRes.ok) {
+                        const finalData = await bulkRes.json();
+                        setStudents(finalData.registeredStudents);
+                        setBulkText('');
+                        setUploadStatus(`Successfully processed ${parsedStudents.length} student records!`);
+                        setTimeout(() => setUploadStatus(''), 5000);
+                      } else {
+                        throw new Error('Failed to post bulk array to API');
+                      }
+                    } catch (e: any) {
+                      console.warn("API bulk registration offline, saving directly to Firestore", e);
+                      try {
+                        for (const s of parsedStudents) {
+                          await saveRegisteredStudent(s);
+                        }
+                        const finalStudents = await fetchRegisteredStudents();
+                        setStudents(finalStudents);
+                        setBulkText('');
+                        setUploadStatus(`Successfully registered ${parsedStudents.length} student records in cloud database!`);
+                        setTimeout(() => setUploadStatus(''), 5000);
+                      } catch (fsErr: any) {
+                        setUploadStatus(`Error: ${fsErr.message}`);
+                      }
                     }
-                  } catch (e: any) {
-                    setUploadStatus(`Error: ${e.message}`);
+                  } catch (outerErr: any) {
+                    setUploadStatus(`Parsing error: ${outerErr.message}`);
                   }
                 }}
                 className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold font-sans flex items-center gap-1.5 shadow-xs transition"
