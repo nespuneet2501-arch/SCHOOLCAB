@@ -152,3 +152,16 @@ export interface AppState {
   registeredStudents: RegisteredStudent[];
   supabaseConfig: SupabaseConfig;
 }
+
+export function getBackendUrl(): string {
+  if (typeof window === "undefined") return "";
+  const host = window.location.hostname;
+  if (
+    host === "localhost" ||
+    host === "127.0.0.1" ||
+    host.includes("asia-southeast1.run.app")
+  ) {
+    return "";
+  }
+  return "https://ais-pre-6njs6jipxrgcxl7rmcbz37-404659537340.asia-southeast1.run.app";
+}

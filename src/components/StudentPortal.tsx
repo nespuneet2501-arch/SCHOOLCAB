@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Post, Cabinet, StudentApplication, Achievement } from '../types';
+import { Post, Cabinet, StudentApplication, Achievement, getBackendUrl } from '../types';
 import { FileText, Plus, Trash2, CheckSquare, Search, Award, Printer, Clock, FileUp, Camera, AlertCircle } from 'lucide-react';
 import { User } from 'firebase/auth';
 import { fetchRegisteredStudents } from '../services/dbService';
@@ -32,7 +32,7 @@ export default function StudentPortal({
   const [showLookupDropdown, setShowLookupDropdown] = useState(false);
 
   React.useEffect(() => {
-    fetch('/api/registered-students')
+    fetch(getBackendUrl() + '/api/registered-students')
       .then(r => {
         if (!r.ok) throw new Error();
         return r.json();

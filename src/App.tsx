@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { SystemConfig, StudentApplication, EmailLog } from './types';
+import { SystemConfig, StudentApplication, EmailLog, getBackendUrl } from './types';
 import BrandingHeader from './components/BrandingHeader';
 import StudentPortal from './components/StudentPortal';
 import EvaluationPanel from './components/EvaluationPanel';
@@ -99,9 +99,9 @@ export default function App() {
     setNetworkError('');
     try {
       const [configRes, appsRes, logsRes] = await Promise.all([
-        fetch('/api/config'),
-        fetch('/api/applications'),
-        fetch('/api/email-logs')
+        fetch(getBackendUrl() + '/api/config'),
+        fetch(getBackendUrl() + '/api/applications'),
+        fetch(getBackendUrl() + '/api/email-logs')
       ]);
 
       if (!configRes.ok || !appsRes.ok || !logsRes.ok) {
@@ -163,7 +163,7 @@ export default function App() {
     setIsResetting(true);
     try {
       if (dbMode === 'server') {
-        const res = await fetch('/api/reset-demo', { method: 'POST' });
+        const res = await fetch(getBackendUrl() + '/api/reset-demo', { method: 'POST' });
         if (!res.ok) throw new Error('Database seeding failed.');
         await loadAllData();
       } else {
@@ -183,7 +183,7 @@ export default function App() {
   const handleSubmitApplication = async (appPayload: Omit<StudentApplication, 'id' | 'status' | 'submittedAt'>) => {
     try {
       if (dbMode === 'server') {
-        const res = await fetch('/api/applications', {
+        const res = await fetch(getBackendUrl() + '/api/applications', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(appPayload)
@@ -309,7 +309,7 @@ export default function App() {
   const handleTriggerAIRecommend = async (id: string) => {
     try {
       if (dbMode === 'server') {
-        const res = await fetch(`/api/applications/${id}/ai-recommend`, { method: 'POST' });
+        const res = await fetch(getBackendUrl() + `/api/applications/${id}/ai-recommend`, { method: 'POST' });
         if (!res.ok) {
           const errData = await res.json();
           throw new Error(errData.error || 'Server Gemini evaluation models failed.');
@@ -317,7 +317,7 @@ export default function App() {
         await loadAllData();
         
         // Auto sync profile view modal
-        const freshAppList = await fetch('/api/applications').then(r => r.json());
+        const freshAppList = await fetch(getBackendUrl() + '/api/applications').then(r => r.json());
         const matched = freshAppList.find((a: any) => a.id === id);
         if (matched) {
           setSelectedProfileApp(matched);
@@ -377,7 +377,7 @@ export default function App() {
   const handleUpdateConfig = async (newConfig: SystemConfig) => {
     try {
       if (dbMode === 'server') {
-        const res = await fetch('/api/config', {
+        const res = await fetch(getBackendUrl() + '/api/config', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(newConfig)

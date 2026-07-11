@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { SystemConfig, Cabinet, Post, EvaluationCriterion, AchievementMatrixItem, EmailLog } from '../types';
+import { SystemConfig, Cabinet, Post, EvaluationCriterion, AchievementMatrixItem, EmailLog, getBackendUrl } from '../types';
 import { Settings, Shield, Edit, Plus, Trash2, Mail, Database, Check, CheckSquare, Clock, Users, Upload, RefreshCw, FileText, Sparkles, AlertTriangle } from 'lucide-react';
 import { saveRegisteredStudent, fetchRegisteredStudents } from '../services/dbService';
 
@@ -94,7 +94,7 @@ export default function AdminPanel({
 
     try {
       // 1. Save config with this connection URI
-      const configSaveRes = await fetch('/api/supabase/config', {
+      const configSaveRes = await fetch(getBackendUrl() + '/api/supabase/config', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...dbConfig, connectionString: generatedUri, useSupabase: true })
@@ -104,7 +104,7 @@ export default function AdminPanel({
       }
 
       // 2. Test Connection
-      const testRes = await fetch('/api/supabase/test-connection', {
+      const testRes = await fetch(getBackendUrl() + '/api/supabase/test-connection', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ connectionString: generatedUri })
@@ -117,7 +117,7 @@ export default function AdminPanel({
       setWizardStatus({ type: 'info', message: 'Step 3/4: Handshake succeeded! Creating tables, constraints, and seeding 100% of sample data...' });
 
       // 3. Setup schema and seed
-      const setupRes = await fetch('/api/supabase/setup-db', {
+      const setupRes = await fetch(getBackendUrl() + '/api/supabase/setup-db', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ connectionString: generatedUri })
@@ -130,7 +130,7 @@ export default function AdminPanel({
       setWizardStatus({ type: 'info', message: 'Step 4/4: Enabling live background data synchronization...' });
 
       // 4. Force background sync flag to true
-      const finalConfigRes = await fetch('/api/supabase/config', {
+      const finalConfigRes = await fetch(getBackendUrl() + '/api/supabase/config', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ connectionString: generatedUri, useSupabase: true, connected: true, lastSyncedAt: new Date().toISOString() })
@@ -157,7 +157,7 @@ export default function AdminPanel({
   // Load students and supabase config on mount
   const loadAdminExtraData = async () => {
     try {
-      const sRes = await fetch('/api/registered-students');
+      const sRes = await fetch(getBackendUrl() + '/api/registered-students');
       if (sRes.ok) {
         const sData = await sRes.json();
         setStudents(sData);
@@ -176,7 +176,7 @@ export default function AdminPanel({
     }
 
     try {
-      const cRes = await fetch('/api/supabase/config');
+      const cRes = await fetch(getBackendUrl() + '/api/supabase/config');
       if (cRes.ok) {
         const cData = await cRes.json();
         setDbConfig({
@@ -873,7 +873,7 @@ export default function AdminPanel({
                     gender: newStudentGender
                   };
                   try {
-                    const res = await fetch('/api/registered-students', {
+                    const res = await fetch(getBackendUrl() + '/api/registered-students', {
                       method: 'POST',
                       headers: { 'Content-Type': 'application/json' },
                       body: JSON.stringify(studentPayload)
@@ -1028,7 +1028,7 @@ export default function AdminPanel({
                     }
 
                     try {
-                      const bulkRes = await fetch('/api/registered-students/bulk', {
+                      const bulkRes = await fetch(getBackendUrl() + '/api/registered-students/bulk', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ students: parsedStudents, mode: bulkMode })
@@ -1118,7 +1118,7 @@ export default function AdminPanel({
                         <button
                           onClick={async () => {
                             if (!confirm(`Are you sure you want to delete ${std.name}?`)) return;
-                            const dRes = await fetch(`/api/registered-students/${std.id}`, { method: 'DELETE' });
+                            const dRes = await fetch(getBackendUrl() + `/api/registered-students/${std.id}`, { method: 'DELETE' });
                             if (dRes.ok) {
                               setStudents(students.filter(s => s.id !== std.id));
                             }
@@ -1178,7 +1178,7 @@ export default function AdminPanel({
                   onClick={async () => {
                     const toggled = !dbConfig.useSupabase;
                     try {
-                      const res = await fetch('/api/supabase/config', {
+                      const res = await fetch(getBackendUrl() + '/api/supabase/config', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ ...dbConfig, useSupabase: toggled })
@@ -1317,7 +1317,7 @@ export default function AdminPanel({
                       if (!dbConfig.connectionString) return alert('Enter a valid PostgreSQL URI string first.');
                       setTestStatus({ type: '', message: 'Establishing handshakes...' });
                       try {
-                        const res = await fetch('/api/supabase/test-connection', {
+                        const res = await fetch(getBackendUrl() + '/api/supabase/test-connection', {
                           method: 'POST',
                           headers: { 'Content-Type': 'application/json' },
                           body: JSON.stringify({ connectionString: dbConfig.connectionString })
@@ -1345,7 +1345,7 @@ export default function AdminPanel({
                       
                       setProvisionStatus({ type: '', message: 'Generating tables, triggers, and seeding rows...' });
                       try {
-                        const res = await fetch('/api/supabase/setup-db', {
+                        const res = await fetch(getBackendUrl() + '/api/supabase/setup-db', {
                           method: 'POST',
                           headers: { 'Content-Type': 'application/json' },
                           body: JSON.stringify({ connectionString: dbConfig.connectionString })
