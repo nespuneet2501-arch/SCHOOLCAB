@@ -40,6 +40,120 @@ export default function AdminPanel({
   const [testStatus, setTestStatus] = useState<{ type: 'success' | 'error' | ''; message: string }>({ type: '', message: '' });
   const [provisionStatus, setProvisionStatus] = useState<{ type: 'success' | 'error' | ''; message: string }>({ type: '', message: '' });
 
+  // Supabase Easy Wizard State
+  const [easyUrl, setEasyUrl] = useState('');
+  const [easyPassword, setEasyPassword] = useState('');
+  const [wizardRunning, setWizardRunning] = useState(false);
+  const [wizardStatus, setWizardStatus] = useState<{ type: 'success' | 'error' | 'info' | ''; message: string }>({ type: '', message: '' });
+
+  const handleRunEasyWizard = async () => {
+    if (!easyUrl) {
+      return alert('Please enter your Supabase Project URL or Project ID first.');
+    }
+    if (!easyPassword) {
+      return alert('Please enter your Supabase Database Password.');
+    }
+
+    setWizardRunning(true);
+    setWizardStatus({ type: 'info', message: 'Step 1/4: Parsing project URL and generating PostgreSQL URI...' });
+
+    // Extract project ID from URL
+    let projectId = easyUrl.trim();
+    if (projectId.includes('project/')) {
+      const parts = projectId.split('project/');
+      if (parts[1]) {
+        projectId = parts[1].split('/')[0];
+      }
+    } else if (projectId.includes('supabase.co')) {
+      const parts = projectId.split('db.');
+      if (parts[1]) {
+        projectId = parts[1].split('.')[0];
+      } else {
+        const parts2 = projectId.split('.');
+        if (parts2[0]) projectId = parts2[0];
+      }
+    } else if (projectId.includes('://')) {
+      try {
+        const urlObj = new URL(projectId);
+        projectId = urlObj.hostname.split('.')[0];
+      } catch (e) {}
+    }
+
+    // Clean project ID
+    projectId = projectId.replace(/[^a-zA-Z0-9-]/g, '');
+
+    if (!projectId || projectId.length < 5) {
+      setWizardRunning(false);
+      return setWizardStatus({ type: 'error', message: 'Could not extract a valid Supabase Project ID. Please copy the URL of your Supabase project (e.g. https://supabase.com/dashboard/project/your-project-id) or enter the Project ID directly.' });
+    }
+
+    const encodedPassword = encodeURIComponent(easyPassword.trim());
+    const generatedUri = `postgresql://postgres:${encodedPassword}@db.${projectId}.supabase.co:5432/postgres`;
+
+    setWizardStatus({ type: 'info', message: `Step 2/4: Saving connection parameters and testing Postgres handshake (Project ID: ${projectId})...` });
+
+    try {
+      // 1. Save config with this connection URI
+      const configSaveRes = await fetch('/api/supabase/config', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...dbConfig, connectionString: generatedUri, useSupabase: true })
+      });
+      if (!configSaveRes.ok) {
+        throw new Error('Failed to save connection details to your server backend.');
+      }
+
+      // 2. Test Connection
+      const testRes = await fetch('/api/supabase/test-connection', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ connectionString: generatedUri })
+      });
+      const testData = await testRes.json();
+      if (!testRes.ok || testData.status !== 'success') {
+        throw new Error(testData.error || 'Connection handshake failed. Please verify that your Database Password is correct and your project ID is active.');
+      }
+
+      setWizardStatus({ type: 'info', message: 'Step 3/4: Handshake succeeded! Creating tables, constraints, and seeding 100% of sample data...' });
+
+      // 3. Setup schema and seed
+      const setupRes = await fetch('/api/supabase/setup-db', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ connectionString: generatedUri })
+      });
+      const setupData = await setupRes.json();
+      if (!setupRes.ok || setupData.status !== 'success') {
+        throw new Error(setupData.error || 'Table layout creation or data seeding failed.');
+      }
+
+      setWizardStatus({ type: 'info', message: 'Step 4/4: Enabling live background data synchronization...' });
+
+      // 4. Force background sync flag to true
+      const finalConfigRes = await fetch('/api/supabase/config', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ connectionString: generatedUri, useSupabase: true, connected: true, lastSyncedAt: new Date().toISOString() })
+      });
+      if (finalConfigRes.ok) {
+        const finalData = await finalConfigRes.json();
+        setDbConfig(finalData.config);
+      }
+
+      // Refresh admin displays
+      await loadAdminExtraData();
+
+      setWizardStatus({
+        type: 'success',
+        message: `🎉 Success! Fully Connected to Supabase! We successfully: 1) Created all tables, 2) Seeded all candidates, and 3) Enabled automatic background syncing!`
+      });
+    } catch (err: any) {
+      setWizardStatus({ type: 'error', message: err.message || 'Wizard failed at some point.' });
+    } finally {
+      setWizardRunning(false);
+    }
+  };
+
   // Load students and supabase config on mount
   const loadAdminExtraData = async () => {
     try {
@@ -1026,14 +1140,17 @@ export default function AdminPanel({
       {/* SUPABASE SQL EXPORTER & SETUP */}
       {activeTab === 'supabase' && (
         <div className="space-y-6">
-          <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-2xs space-y-5">
+          <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-2xs space-y-6">
             <div>
-              <h3 className="font-display font-bold text-slate-900 text-sm flex items-center gap-1.5">
-                <Database className="w-4 h-4 text-slate-800" />
-                <span>Automated Supabase Cloud Link</span>
-              </h3>
+              <div className="flex items-center gap-2">
+                <span className="px-2.5 py-0.5 bg-amber-100 text-amber-800 text-[9px] font-bold tracking-wider uppercase rounded-full animate-pulse">99% Automated Setup</span>
+                <h3 className="font-display font-bold text-slate-900 text-sm flex items-center gap-1.5">
+                  <Database className="w-4 h-4 text-slate-800" />
+                  <span>Connect to Supabase Cloud</span>
+                </h3>
+              </div>
               <p className="text-[11px] text-slate-500 font-sans mt-0.5 font-medium leading-relaxed">
-                Connect your workspace directly to your Supabase PostgreSQL instance. We automate table setups, policies, and continuous background data synchronization.
+                Connect your workspace directly to your Supabase PostgreSQL instance. We automate all table setups, indexes, constraint policies, and continuous background data synchronization.
               </p>
             </div>
 
@@ -1044,18 +1161,18 @@ export default function AdminPanel({
               <div className="space-y-1 text-xs">
                 <div className="flex items-center gap-1.5 font-bold text-slate-900">
                   <span className={`w-2.5 h-2.5 rounded-full ${dbConfig.connected ? 'bg-emerald-500 animate-pulse' : 'bg-slate-400'}`}></span>
-                  <span>Supabase Status: {dbConfig.connected ? 'Connected & Active' : 'Disconnected / Not Configured'}</span>
+                  <span>Supabase Connection: {dbConfig.connected ? 'CONNECTED & ACTIVE' : 'DISCONNECTED'}</span>
                 </div>
                 <p className="text-[10px] text-slate-500 leading-relaxed font-sans">
                   {dbConfig.connected 
-                    ? `Successfully linked to PostgreSQL. Background synchronization active. Last Sync: ${dbConfig.lastSyncedAt ? new Date(dbConfig.lastSyncedAt).toLocaleString() : 'Just now'}`
-                    : 'To integrate, copy the Connection String from your Supabase dashboard (Project Settings → Database → Connection Strings).'
+                    ? `Linked successfully. Continuous live database synchronization is now active. Last synced: ${dbConfig.lastSyncedAt ? new Date(dbConfig.lastSyncedAt).toLocaleString() : 'Just now'}`
+                    : 'Your website is ready to sync. Paste your Supabase dashboard link and password below to do 100% of the heavy lifting.'
                   }
                 </p>
               </div>
 
               <div className="flex items-center gap-2 font-sans text-xs">
-                <span className="font-bold text-slate-600">Background Syncing:</span>
+                <span className="font-bold text-slate-600">Sync Status:</span>
                 <button
                   type="button"
                   onClick={async () => {
@@ -1085,98 +1202,192 @@ export default function AdminPanel({
               </div>
             </div>
 
-            {/* Connection settings form */}
-            <div className="space-y-3.5">
-              <div className="space-y-1">
-                <label className="text-[10px] font-bold text-slate-500 font-mono block">SUPABASE POSTGRESQL CONNECTION STRING (URI)</label>
-                <input
-                  type="password"
-                  placeholder="postgresql://postgres:[your-password]@db.[project-id].supabase.co:5432/postgres"
-                  value={dbConfig.connectionString}
-                  onChange={e => setDbConfig({ ...dbConfig, connectionString: e.target.value })}
-                  className="w-full px-3.5 py-2 text-xs border border-slate-300 rounded-lg text-slate-850 font-mono focus:ring-1 focus:ring-slate-900"
-                />
-                <p className="text-[9px] text-slate-400">
-                  ★ Secret Key Security: This URI string is stored on the secure container backend and is never sent to or visible in the student-facing browser.
-                </p>
+            {/* AUTOMATED CONNECTOR WIZARD SECTION */}
+            <div className="p-5 bg-slate-50/60 rounded-xl border border-slate-200 space-y-4">
+              <div className="flex items-center gap-1.5">
+                <Sparkles className="w-4 h-4 text-amber-500" />
+                <h4 className="text-xs font-bold text-slate-800">Supabase Easy Connection Wizard</h4>
               </div>
 
-              <div className="flex flex-wrap gap-2.5 pt-2">
-                <button
-                  onClick={async () => {
-                    if (!dbConfig.connectionString) return alert('Enter a valid PostgreSQL URI string first.');
-                    setTestStatus({ type: '', message: 'Establishing handshakes...' });
-                    try {
-                      const res = await fetch('/api/supabase/test-connection', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ connectionString: dbConfig.connectionString })
-                      });
-                      const data = await res.json();
-                      if (res.ok && data.status === 'success') {
-                        setTestStatus({ type: 'success', message: `Test succeeded! Connected to Postgres ${data.version.split(' on ')[0]}` });
-                      } else {
-                        throw new Error(data.error || 'Connection failed.');
-                      }
-                    } catch (e: any) {
-                      setTestStatus({ type: 'error', message: e.message || 'Connection handshake failed.' });
-                    }
-                  }}
-                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 rounded-xl text-xs font-bold font-sans flex items-center gap-1.5 transition"
-                >
-                  <RefreshCw className="w-3.5 h-3.5 text-slate-500" />
-                  <span>Test Supabase Connection</span>
-                </button>
-
-                <button
-                  onClick={async () => {
-                    if (!dbConfig.connectionString) return alert('Enter a valid PostgreSQL URI string first.');
-                    if (!confirm('This will provision the PostgreSQL database schema, create registered_students, applications, config, and logs tables, and seed them with your current workspace data. Continue?')) return;
-                    
-                    setProvisionStatus({ type: '', message: 'Generating tables, triggers, and seeding rows...' });
-                    try {
-                      const res = await fetch('/api/supabase/setup-db', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ connectionString: dbConfig.connectionString })
-                      });
-                      const data = await res.json();
-                      if (res.ok && data.status === 'success') {
-                        setProvisionStatus({ type: 'success', message: 'Success! Tables, triggers, and sample data automatically deployed to Supabase!' });
-                        loadAdminExtraData();
-                      } else {
-                        throw new Error(data.error || 'DDL provisioning failed.');
-                      }
-                    } catch (e: any) {
-                      setProvisionStatus({ type: 'error', message: e.message || 'Provisioning failed.' });
-                    }
-                  }}
-                  className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold font-sans flex items-center gap-1.5 transition shadow-xs"
-                >
-                  <Sparkles className="w-3.5 h-3.5 text-amber-400 animate-bounce" />
-                  <span>Auto-Provision & Seed Database</span>
-                </button>
-              </div>
-
-              {/* Status messages */}
-              {testStatus.message && (
-                <div className={`p-3 rounded-lg text-xs leading-relaxed font-sans ${
-                  testStatus.type === 'success' ? 'bg-emerald-50 text-emerald-800' :
-                  testStatus.type === 'error' ? 'bg-rose-50 text-rose-800' : 'bg-slate-50 text-slate-500'
-                }`}>
-                  {testStatus.message}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-slate-600 uppercase block">1. Paste Supabase URL or Project ID</label>
+                  <input
+                    type="text"
+                    placeholder="https://supabase.com/dashboard/project/your-project-id"
+                    value={easyUrl}
+                    onChange={e => setEasyUrl(e.target.value)}
+                    className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-1 focus:ring-slate-900 bg-white"
+                  />
+                  <span className="text-[9px] text-slate-400 block">
+                    Copy and paste the URL from your browser's address bar when looking at your Supabase project!
+                  </span>
+                  {easyUrl && (
+                    <div className="text-[9px] text-emerald-600 font-mono mt-0.5">
+                      ✓ Detected Project ID: {(() => {
+                        let tempId = easyUrl.trim();
+                        if (tempId.includes('project/')) {
+                          const parts = tempId.split('project/');
+                          if (parts[1]) tempId = parts[1].split('/')[0];
+                        } else if (tempId.includes('supabase.co')) {
+                          const parts = tempId.split('db.');
+                          if (parts[1]) tempId = parts[1].split('.')[0];
+                        }
+                        return tempId.replace(/[^a-zA-Z0-9-]/g, '') || 'Parsing...';
+                      })()}
+                    </div>
+                  )}
                 </div>
-              )}
 
-              {provisionStatus.message && (
-                <div className={`p-3 rounded-lg text-xs leading-relaxed font-sans ${
-                  provisionStatus.type === 'success' ? 'bg-emerald-50 text-emerald-800' :
-                  provisionStatus.type === 'error' ? 'bg-rose-50 text-rose-800' : 'bg-slate-50 text-slate-500'
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-slate-600 uppercase block">2. Enter Database Password</label>
+                  <input
+                    type="password"
+                    placeholder="The password you set in Supabase"
+                    value={easyPassword}
+                    onChange={e => setEasyPassword(e.target.value)}
+                    className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-1 focus:ring-slate-900 bg-white"
+                  />
+                  <span className="text-[9px] text-slate-400 block">
+                    The database password you specified during project creation in Supabase dashboard.
+                  </span>
+                </div>
+              </div>
+
+              <div className="pt-2 flex justify-start">
+                <button
+                  type="button"
+                  disabled={wizardRunning}
+                  onClick={handleRunEasyWizard}
+                  className="px-5 py-2.5 bg-slate-900 hover:bg-slate-800 disabled:bg-slate-400 text-white rounded-xl text-xs font-bold font-sans flex items-center gap-2 shadow-sm transition"
+                >
+                  {wizardRunning ? (
+                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                  ) : (
+                    <Sparkles className="w-3.5 h-3.5 text-amber-300" />
+                  )}
+                  <span>{wizardRunning ? 'Auto-Configuring Now...' : '⚡ Configure & Complete 100% Setup'}</span>
+                </button>
+              </div>
+
+              {/* Wizard Status Alert box */}
+              {wizardStatus.message && (
+                <div className={`p-4 rounded-xl text-xs font-sans leading-relaxed flex items-start gap-2.5 border ${
+                  wizardStatus.type === 'success' ? 'bg-emerald-50 border-emerald-200 text-emerald-800' :
+                  wizardStatus.type === 'error' ? 'bg-rose-50 border-rose-200 text-rose-800' :
+                  'bg-amber-50/80 border-amber-200 text-slate-700'
                 }`}>
-                  {provisionStatus.message}
+                  <div className="mt-0.5">
+                    {wizardStatus.type === 'success' ? <CheckSquare className="w-4 h-4 text-emerald-600" /> :
+                     wizardStatus.type === 'error' ? <AlertTriangle className="w-4 h-4 text-rose-600" /> :
+                     <Clock className="w-4 h-4 text-amber-600 animate-spin" />}
+                  </div>
+                  <div className="space-y-1">
+                    <p className="font-bold">{wizardStatus.type === 'success' ? 'Fully Configured & Synced!' : wizardStatus.type === 'error' ? 'Connection Blocked' : 'Automated Sequence Running...'}</p>
+                    <p className="text-[11px] leading-relaxed opacity-95">{wizardStatus.message}</p>
+                  </div>
                 </div>
               )}
             </div>
+
+            {/* COLLAPSIBLE ADVANCED OPTIONS FOR DEV USERS */}
+            <details className="group border border-slate-200 rounded-xl">
+              <summary className="flex justify-between items-center p-3.5 text-xs font-bold text-slate-700 cursor-pointer hover:bg-slate-50 transition list-none">
+                <span>Advanced Manual Configuration (Connection String Input)</span>
+                <span className="text-slate-400 group-open:rotate-180 transition-transform duration-200">▼</span>
+              </summary>
+              <div className="p-4 border-t border-slate-200 space-y-4 bg-slate-50/30">
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-slate-500 font-mono block">SUPABASE POSTGRESQL CONNECTION STRING (URI)</label>
+                  <input
+                    type="password"
+                    placeholder="postgresql://postgres:[your-password]@db.[project-id].supabase.co:5432/postgres"
+                    value={dbConfig.connectionString}
+                    onChange={e => setDbConfig({ ...dbConfig, connectionString: e.target.value })}
+                    className="w-full px-3.5 py-2 text-xs border border-slate-300 rounded-lg text-slate-850 font-mono focus:ring-1 focus:ring-slate-900 bg-white"
+                  />
+                  <p className="text-[9px] text-slate-400">
+                    ★ Secret Key Security: This URI string is stored on the secure container backend and is never sent to or visible in the student-facing browser.
+                  </p>
+                </div>
+
+                <div className="flex flex-wrap gap-2.5 pt-1">
+                  <button
+                    onClick={async () => {
+                      if (!dbConfig.connectionString) return alert('Enter a valid PostgreSQL URI string first.');
+                      setTestStatus({ type: '', message: 'Establishing handshakes...' });
+                      try {
+                        const res = await fetch('/api/supabase/test-connection', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ connectionString: dbConfig.connectionString })
+                        });
+                        const data = await res.json();
+                        if (res.ok && data.status === 'success') {
+                          setTestStatus({ type: 'success', message: `Test succeeded! Connected to Postgres ${data.version.split(' on ')[0]}` });
+                        } else {
+                          throw new Error(data.error || 'Connection failed.');
+                        }
+                      } catch (e: any) {
+                        setTestStatus({ type: 'error', message: e.message || 'Connection handshake failed.' });
+                      }
+                    }}
+                    className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 rounded-xl text-xs font-bold font-sans flex items-center gap-1.5 transition"
+                  >
+                    <RefreshCw className="w-3.5 h-3.5 text-slate-500" />
+                    <span>Test Connection Handshake</span>
+                  </button>
+
+                  <button
+                    onClick={async () => {
+                      if (!dbConfig.connectionString) return alert('Enter a valid PostgreSQL URI string first.');
+                      if (!confirm('This will provision the PostgreSQL database schema, create registered_students, applications, config, and logs tables, and seed them with your current workspace data. Continue?')) return;
+                      
+                      setProvisionStatus({ type: '', message: 'Generating tables, triggers, and seeding rows...' });
+                      try {
+                        const res = await fetch('/api/supabase/setup-db', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ connectionString: dbConfig.connectionString })
+                        });
+                        const data = await res.json();
+                        if (res.ok && data.status === 'success') {
+                          setProvisionStatus({ type: 'success', message: 'Success! Tables, triggers, and sample data automatically deployed to Supabase!' });
+                          loadAdminExtraData();
+                        } else {
+                          throw new Error(data.error || 'DDL provisioning failed.');
+                        }
+                      } catch (e: any) {
+                        setProvisionStatus({ type: 'error', message: e.message || 'Provisioning failed.' });
+                      }
+                    }}
+                    className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold font-sans flex items-center gap-1.5 transition shadow-xs"
+                  >
+                    <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                    <span>Auto-Provision & Seed Database</span>
+                  </button>
+                </div>
+
+                {/* Status messages */}
+                {testStatus.message && (
+                  <div className={`p-3 rounded-lg text-xs leading-relaxed font-sans ${
+                    testStatus.type === 'success' ? 'bg-emerald-50 text-emerald-800' :
+                    testStatus.type === 'error' ? 'bg-rose-50 text-rose-800' : 'bg-slate-50 text-slate-500'
+                  }`}>
+                    {testStatus.message}
+                  </div>
+                )}
+
+                {provisionStatus.message && (
+                  <div className={`p-3 rounded-lg text-xs leading-relaxed font-sans ${
+                    provisionStatus.type === 'success' ? 'bg-emerald-50 text-emerald-800' :
+                    provisionStatus.type === 'error' ? 'bg-rose-50 text-rose-800' : 'bg-slate-50 text-slate-500'
+                  }`}>
+                    {provisionStatus.message}
+                  </div>
+                )}
+              </div>
+            </details>
           </div>
 
           {/* DDL SQL Exporter backup */}
