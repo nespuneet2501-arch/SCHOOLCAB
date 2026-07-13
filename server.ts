@@ -1122,14 +1122,14 @@ app.get("/api/supabase/config", (req, res) => {
 // POST Supabase Config
 app.post("/api/supabase/config", (req, res) => {
   try {
-    const { connectionString, url, anonKey, useSupabase } = req.body;
+    const { connectionString, url, anonKey, useSupabase, connected, lastSyncedAt } = req.body;
     state.supabaseConfig = {
       connectionString,
       url,
       anonKey,
       useSupabase: !!useSupabase,
-      connected: state.supabaseConfig?.connected || false,
-      lastSyncedAt: state.supabaseConfig?.lastSyncedAt
+      connected: connected !== undefined ? !!connected : (state.supabaseConfig?.connected || false),
+      lastSyncedAt: lastSyncedAt !== undefined ? lastSyncedAt : (state.supabaseConfig?.lastSyncedAt || null)
     };
     saveDatabase();
     res.json({ status: "success", config: state.supabaseConfig });

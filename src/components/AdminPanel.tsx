@@ -130,14 +130,40 @@ export default function AdminPanel({
       setWizardStatus({ type: 'info', message: 'Step 4/4: Enabling live background data synchronization...' });
 
       // 4. Force background sync flag to true
-      const finalConfigRes = await fetch(getBackendUrl() + '/api/supabase/config', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ connectionString: generatedUri, useSupabase: true, connected: true, lastSyncedAt: new Date().toISOString() })
-      });
-      if (finalConfigRes.ok) {
-        const finalData = await finalConfigRes.json();
-        setDbConfig(finalData.config);
+      let finalConfigSaved = false;
+      try {
+        const finalConfigRes = await fetch(getBackendUrl() + '/api/supabase/config', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ connectionString: generatedUri, useSupabase: true, connected: true, lastSyncedAt: new Date().toISOString() })
+        });
+        if (finalConfigRes.ok) {
+          const finalData = await finalConfigRes.json();
+          setDbConfig(finalData.config);
+          try {
+            await saveSupabaseConfig(finalData.config);
+            finalConfigSaved = true;
+          } catch (fsErr) {
+            console.warn("Could not sync Supabase config to Firestore in step 4:", fsErr);
+          }
+        }
+      } catch (postErr) {
+        console.warn("Could not POST config to server backend:", postErr);
+      }
+
+      if (!finalConfigSaved) {
+        const fallbackConfig = {
+          connectionString: generatedUri,
+          useSupabase: true,
+          connected: true,
+          lastSyncedAt: new Date().toISOString()
+        };
+        setDbConfig(fallbackConfig);
+        try {
+          await saveSupabaseConfig(fallbackConfig);
+        } catch (fsErr) {
+          console.warn("Could not save fallback config to Firestore in step 4:", fsErr);
+        }
       }
 
       // Refresh admin displays

@@ -1,0 +1,966 @@
+{
+  "config": {
+    "branding": {
+      "name": "GD Goenka Public School",
+      "tagline": "Higher Stronger Brighter • School Leadership Cabinet",
+      "logo": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 100 100\" class=\"w-16 h-16\"><circle cx=\"50\" cy=\"50\" r=\"45\" fill=\"#0f172a\" stroke=\"#fbbf24\" stroke-width=\"3\"/><path d=\"M50 15 L20 35 L20 45 L50 30 L80 45 L80 35 Z\" fill=\"#fbbf24\"/><path d=\"M30 46 L30 70 C30 80 50 85 50 85 C50 85 70 80 70 70 L70 46 L50 58 Z\" fill=\"#e2e8f0\" stroke=\"#fbbf24\" stroke-width=\"1.5\"/><circle cx=\"50\" cy=\"45\" r=\"8\" fill=\"#fbbf24\"/><path d=\"M50 15 L50 30\" stroke=\"#fbbf24\" stroke-width=\"2\"/></svg>",
+      "primaryColor": "#0f172a",
+      "secondaryColor": "#fbbf24",
+      "academicSession": "2026-2027"
+    },
+    "applicationDeadline": "2026-08-31",
+    "cabinets": [
+      {
+        "id": "junior",
+        "name": "Junior Cabinet",
+        "classRangeStart": 1,
+        "classRangeEnd": 5,
+        "enabled": true
+      },
+      {
+        "id": "senior",
+        "name": "Senior Cabinet",
+        "classRangeStart": 6,
+        "classRangeEnd": 11,
+        "enabled": true
+      }
+    ],
+    "posts": [
+      {
+        "id": "head-boy",
+        "cabinetId": "senior",
+        "title": "Head Boy",
+        "vacancies": 1,
+        "genderRule": "boy",
+        "eligibleClasses": [
+          11
+        ],
+        "enabled": true
+      },
+      {
+        "id": "head-girl",
+        "cabinetId": "senior",
+        "title": "Head Girl",
+        "vacancies": 1,
+        "genderRule": "girl",
+        "eligibleClasses": [
+          11
+        ],
+        "enabled": true
+      },
+      {
+        "id": "vice-head-boy",
+        "cabinetId": "senior",
+        "title": "School Vice Head Boy",
+        "vacancies": 1,
+        "genderRule": "boy",
+        "eligibleClasses": [
+          11
+        ],
+        "enabled": true
+      },
+      {
+        "id": "vice-head-girl",
+        "cabinetId": "senior",
+        "title": "School Vice Head Girl",
+        "vacancies": 1,
+        "genderRule": "girl",
+        "eligibleClasses": [
+          11
+        ],
+        "enabled": true
+      },
+      {
+        "id": "president-council",
+        "cabinetId": "senior",
+        "title": "President (Student Council)",
+        "vacancies": 1,
+        "genderRule": "any",
+        "eligibleClasses": [
+          10,
+          11
+        ],
+        "enabled": true
+      },
+      {
+        "id": "vice-president-council",
+        "cabinetId": "senior",
+        "title": "Vice President (Student Council)",
+        "vacancies": 1,
+        "genderRule": "any",
+        "eligibleClasses": [
+          9,
+          10
+        ],
+        "enabled": true
+      },
+      {
+        "id": "president-cultural",
+        "cabinetId": "senior",
+        "title": "President (Cultural)",
+        "vacancies": 1,
+        "genderRule": "any",
+        "eligibleClasses": [
+          10,
+          11
+        ],
+        "enabled": true
+      },
+      {
+        "id": "vice-president-cultural",
+        "cabinetId": "senior",
+        "title": "Vice President (Cultural)",
+        "vacancies": 1,
+        "genderRule": "any",
+        "eligibleClasses": [
+          8,
+          9,
+          10
+        ],
+        "enabled": true
+      },
+      {
+        "id": "president-press",
+        "cabinetId": "senior",
+        "title": "President (Press)",
+        "vacancies": 1,
+        "genderRule": "any",
+        "eligibleClasses": [
+          10,
+          11
+        ],
+        "enabled": true
+      },
+      {
+        "id": "sports-captain-boy",
+        "cabinetId": "senior",
+        "title": "Sports Captain (Boy)",
+        "vacancies": 1,
+        "genderRule": "boy",
+        "eligibleClasses": [
+          10,
+          11
+        ],
+        "enabled": true
+      },
+      {
+        "id": "sports-captain-girl",
+        "cabinetId": "senior",
+        "title": "Sports Captain (Girl)",
+        "vacancies": 1,
+        "genderRule": "girl",
+        "eligibleClasses": [
+          10,
+          11
+        ],
+        "enabled": true
+      },
+      {
+        "id": "school-marshal-senior-boy",
+        "cabinetId": "senior",
+        "title": "School Marshal (Senior - Boy)",
+        "vacancies": 2,
+        "genderRule": "boy",
+        "eligibleClasses": [
+          10,
+          11
+        ],
+        "enabled": true
+      },
+      {
+        "id": "school-marshal-senior-girl",
+        "cabinetId": "senior",
+        "title": "School Marshal (Senior - Girl)",
+        "vacancies": 2,
+        "genderRule": "girl",
+        "eligibleClasses": [
+          10,
+          11
+        ],
+        "enabled": true
+      },
+      {
+        "id": "discipline-captain",
+        "cabinetId": "senior",
+        "title": "Discipline Captain",
+        "vacancies": 1,
+        "genderRule": "any",
+        "eligibleClasses": [
+          9,
+          10,
+          11
+        ],
+        "enabled": true
+      },
+      {
+        "id": "technology-captain",
+        "cabinetId": "senior",
+        "title": "Technology Captain",
+        "vacancies": 1,
+        "genderRule": "any",
+        "eligibleClasses": [
+          9,
+          10,
+          11
+        ],
+        "enabled": true
+      },
+      {
+        "id": "environment-captain",
+        "cabinetId": "senior",
+        "title": "Environment Captain",
+        "vacancies": 1,
+        "genderRule": "any",
+        "eligibleClasses": [
+          8,
+          9,
+          10,
+          11
+        ],
+        "enabled": true
+      },
+      {
+        "id": "wellness-captain",
+        "cabinetId": "senior",
+        "title": "Health & Wellness Captain",
+        "vacancies": 1,
+        "genderRule": "any",
+        "eligibleClasses": [
+          8,
+          9,
+          10,
+          11
+        ],
+        "enabled": true
+      },
+      {
+        "id": "junior-head-boy",
+        "cabinetId": "junior",
+        "title": "Junior Head Boy",
+        "vacancies": 1,
+        "genderRule": "boy",
+        "eligibleClasses": [
+          5
+        ],
+        "enabled": true
+      },
+      {
+        "id": "junior-head-girl",
+        "cabinetId": "junior",
+        "title": "Junior Head Girl",
+        "vacancies": 1,
+        "genderRule": "girl",
+        "eligibleClasses": [
+          5
+        ],
+        "enabled": true
+      },
+      {
+        "id": "junior-sports-captain",
+        "cabinetId": "junior",
+        "title": "Junior Sports Captain",
+        "vacancies": 2,
+        "genderRule": "any",
+        "eligibleClasses": [
+          4,
+          5
+        ],
+        "enabled": true
+      }
+    ],
+    "criteria": [
+      {
+        "id": "achievement",
+        "name": "Achievements Portfolio",
+        "maxMarks": 10,
+        "enabled": true,
+        "description": "Evaluated based on highest certified level (National, State, District, School)"
+      },
+      {
+        "id": "interview",
+        "name": "Interview Assessment",
+        "maxMarks": 10,
+        "enabled": true,
+        "description": "Judged by the school panel for poise, alignment, values, and leadership potential"
+      },
+      {
+        "id": "attendance",
+        "name": "Attendance Consistency",
+        "maxMarks": 10,
+        "enabled": true,
+        "description": "Calculated based on 3-year average attendance percentage"
+      },
+      {
+        "id": "academics",
+        "name": "Academic Grade Performance",
+        "maxMarks": 10,
+        "enabled": true,
+        "description": "Scores derived from recent term grade averages"
+      },
+      {
+        "id": "years",
+        "name": "Years of School Study",
+        "maxMarks": 10,
+        "enabled": true,
+        "description": "Points earned for longevity: 1 point per year studied up to 10 points"
+      },
+      {
+        "id": "discipline",
+        "name": "Discipline & Behavior",
+        "maxMarks": 10,
+        "enabled": true,
+        "description": "Evaluated by school coordinators for conduct, behavior, obedience, and observance of dress code"
+      }
+    ],
+    "achievementMatrix": [
+      {
+        "level": "School",
+        "rank": "Gold",
+        "marks": 3
+      },
+      {
+        "level": "School",
+        "rank": "Silver",
+        "marks": 2
+      },
+      {
+        "level": "School",
+        "rank": "Bronze",
+        "marks": 1
+      },
+      {
+        "level": "District",
+        "rank": "Gold",
+        "marks": 5
+      },
+      {
+        "level": "District",
+        "rank": "Silver",
+        "marks": 4
+      },
+      {
+        "level": "District",
+        "rank": "Bronze",
+        "marks": 3
+      },
+      {
+        "level": "State",
+        "rank": "Gold",
+        "marks": 7
+      },
+      {
+        "level": "State",
+        "rank": "Silver",
+        "marks": 5
+      },
+      {
+        "level": "State",
+        "rank": "Bronze",
+        "marks": 3
+      },
+      {
+        "level": "National",
+        "rank": "Gold",
+        "marks": 10
+      },
+      {
+        "level": "National",
+        "rank": "Silver",
+        "marks": 8
+      },
+      {
+        "level": "National",
+        "rank": "Bronze",
+        "marks": 6
+      }
+    ]
+  },
+  "applications": [
+    {
+      "id": "app-001",
+      "name": "Aarav Goel",
+      "admissionNumber": "GDG-2015-8822",
+      "class": 11,
+      "section": "A",
+      "rollNumber": "14",
+      "gender": "Boy",
+      "dob": "2010-04-12",
+      "admissionDate": "2015-04-10",
+      "house": "Radhakrishnan",
+      "mobile": "9876543210",
+      "parentName": "Sanjay Goel",
+      "parentMobile": "9876543211",
+      "email": "aarav.goel@example.com",
+      "leadershipExperience": "Served as Vice Captain for Hockey Club in Class X. Core volunteer in organizing the Annual Sports Day. Lead actor in Inter-house dramatics.",
+      "achievements": [
+        {
+          "level": "National",
+          "rank": "Silver",
+          "title": "National Inter-School Athletics Meet Under-16 High Jump",
+          "year": "2025"
+        },
+        {
+          "level": "District",
+          "rank": "Gold",
+          "title": "District Badminton Championship Boys Doubles",
+          "year": "2024"
+        }
+      ],
+      "firstChoicePostId": "head-boy",
+      "secondChoicePostId": "sports-captain-boy",
+      "sop": "As a student of GD Goenka since Prep, I have grown to cherish our motto. I wish to give back by leading our student council with integrity, bridging the gap between juniors and seniors, and ensuring active sports participation.",
+      "declaration": true,
+      "status": "Selected",
+      "submittedAt": "2026-07-02T10:30:00Z",
+      "interviewDate": "2026-07-08",
+      "interviewTime": "10:00",
+      "interviewMarks": 9.5,
+      "attendancePercentage": 96.5,
+      "attendanceMarks": 9.6,
+      "academicMarks": 9.2,
+      "remarks": "Outstanding candidate with excellent articulation and long commitment to school sports. Eloquent speaker who embodies Goenkan values perfectly.",
+      "recommendation": "Highly Recommended",
+      "yearsInSchool": 11,
+      "yearsScore": 10,
+      "achievementScore": 8,
+      "disciplineMarks": 9.4,
+      "finalScore": 55.7,
+      "rankOverall": 1,
+      "rankPost": 1,
+      "rankHouse": 1,
+      "rankGender": 1
+    },
+    {
+      "id": "app-002",
+      "name": "Diya Sharma",
+      "admissionNumber": "GDG-2016-1120",
+      "class": 11,
+      "section": "B",
+      "rollNumber": "08",
+      "gender": "Girl",
+      "dob": "2010-08-22",
+      "admissionDate": "2016-07-15",
+      "house": "Tagore",
+      "mobile": "9812345678",
+      "parentName": "Meenakshi Sharma",
+      "parentMobile": "9812345679",
+      "email": "diya.sharma@example.com",
+      "leadershipExperience": "Class Representative for 3 consecutive years. Organized MUN 2025 as the Lead Coordinator. Member of school choir.",
+      "achievements": [
+        {
+          "level": "State",
+          "rank": "Gold",
+          "title": "State Debate Championship First Place Winner",
+          "year": "2025"
+        },
+        {
+          "level": "School",
+          "rank": "Gold",
+          "title": "All-Round Student Academic Excellence Award",
+          "year": "2024"
+        }
+      ],
+      "firstChoicePostId": "head-girl",
+      "secondChoicePostId": "president-council",
+      "sop": "Leadership is about making others better as a result of your presence. I want to build a culture of mental health awareness, academic mentorship, and active social service at GD Goenka, fostering a more inclusive and empathetic student cabinet.",
+      "declaration": true,
+      "status": "Selected",
+      "submittedAt": "2026-07-03T11:15:00Z",
+      "interviewDate": "2026-07-08",
+      "interviewTime": "11:00",
+      "interviewMarks": 9.8,
+      "attendancePercentage": 98.2,
+      "attendanceMarks": 9.8,
+      "academicMarks": 9.7,
+      "remarks": "Exceptional maturity and clarity of vision. Her SOP is incredibly thoughtful. An effortless leader highly endorsed by the senior faculty.",
+      "recommendation": "Highly Recommended",
+      "yearsInSchool": 10,
+      "yearsScore": 10,
+      "achievementScore": 7,
+      "disciplineMarks": 8.6,
+      "finalScore": 54.9,
+      "rankOverall": 3,
+      "rankPost": 1,
+      "rankHouse": 1,
+      "rankGender": 2
+    },
+    {
+      "id": "app-003",
+      "name": "Kabir Mehra",
+      "admissionNumber": "GDG-2019-4530",
+      "class": 11,
+      "section": "C",
+      "rollNumber": "18",
+      "gender": "Boy",
+      "dob": "2010-02-15",
+      "admissionDate": "2019-04-05",
+      "house": "Vivekanand",
+      "mobile": "9899112233",
+      "parentName": "Rajeev Mehra",
+      "parentMobile": "9899112234",
+      "email": "kabir.mehra@example.com",
+      "leadershipExperience": "House Prefect in Class X. Lead captain of Under-15 Football House Team. Managed sound crew for the annual play.",
+      "achievements": [
+        {
+          "level": "District",
+          "rank": "Bronze",
+          "title": "District Football Championship Runners Up",
+          "year": "2024"
+        }
+      ],
+      "firstChoicePostId": "head-boy",
+      "secondChoicePostId": "vice-head-boy",
+      "sop": "I believe in practical problem solving. If selected Head Boy, I will focus on upgrading student facilities, streamlining club activities, and introducing peer-to-peer coding bootcamps to build a smart community.",
+      "declaration": true,
+      "status": "Waitlisted",
+      "submittedAt": "2026-07-04T09:45:00Z",
+      "interviewDate": "2026-07-08",
+      "interviewTime": "11:30",
+      "interviewMarks": 8.2,
+      "attendancePercentage": 91,
+      "attendanceMarks": 9.1,
+      "academicMarks": 8.5,
+      "remarks": "A hands-on, active individual with high energetic presence. Slightly casual in interview but shows deep potential. Fit for vice-roles or waiting list.",
+      "recommendation": "Recommended",
+      "yearsInSchool": 7,
+      "yearsScore": 7,
+      "achievementScore": 3,
+      "disciplineMarks": 8.6,
+      "finalScore": 44.4,
+      "rankOverall": 7,
+      "rankPost": 2,
+      "rankHouse": 3,
+      "rankGender": 4
+    },
+    {
+      "id": "app-004",
+      "name": "Ananya Iyer",
+      "admissionNumber": "GDG-2015-9923",
+      "class": 11,
+      "section": "A",
+      "rollNumber": "02",
+      "gender": "Girl",
+      "dob": "2010-11-05",
+      "admissionDate": "2015-04-12",
+      "house": "Teresa",
+      "mobile": "9818822334",
+      "parentName": "Venkat Iyer",
+      "parentMobile": "9818822335",
+      "email": "ananya.iyer@example.com",
+      "leadershipExperience": "President of the Music Society in Class X. Lead Vocalist in major external cultural inter-school fests. Organized GD Goenka Annual Fest.",
+      "achievements": [
+        {
+          "level": "National",
+          "rank": "Gold",
+          "title": "National Classical Music Solo Vocal First Rank",
+          "year": "2025"
+        },
+        {
+          "level": "School",
+          "rank": "Gold",
+          "title": "Best Creative Performer Award",
+          "year": "2024"
+        }
+      ],
+      "firstChoicePostId": "head-girl",
+      "secondChoicePostId": "president-cultural",
+      "sop": "Our school has a massive pool of artistic talents. I want to expand Goenkan heritage by creating collaborative creative clubs, launching our digital creative magazine, and organizing a regional Inter-school arts carnival.",
+      "declaration": true,
+      "status": "Waitlisted",
+      "submittedAt": "2026-07-04T14:20:00Z",
+      "interviewDate": "2026-07-08",
+      "interviewTime": "12:00",
+      "interviewMarks": 9,
+      "attendancePercentage": 94,
+      "attendanceMarks": 9.4,
+      "academicMarks": 8.8,
+      "remarks": "Stunning portfolio in arts. Absolute confidence in front of audience. She is an outstanding choice for Cultural President or Head Girl waiting list.",
+      "recommendation": "Highly Recommended",
+      "yearsInSchool": 11,
+      "yearsScore": 10,
+      "achievementScore": 10,
+      "disciplineMarks": 8.2,
+      "finalScore": 55.4,
+      "rankOverall": 2,
+      "rankPost": 1,
+      "rankHouse": 1,
+      "rankGender": 1
+    },
+    {
+      "id": "app-005",
+      "name": "Rohan Malhotra",
+      "admissionNumber": "GDG-2022-7744",
+      "class": 11,
+      "section": "D",
+      "rollNumber": "22",
+      "gender": "Boy",
+      "dob": "2010-05-18",
+      "admissionDate": "2022-08-01",
+      "house": "Radhakrishnan",
+      "mobile": "9711223344",
+      "parentName": "Vikram Malhotra",
+      "parentMobile": "9711223345",
+      "email": "rohan.malhotra@example.com",
+      "leadershipExperience": "Sports volunteer, House Cricket Captain. Conducted physical drills for middle school students.",
+      "achievements": [
+        {
+          "level": "District",
+          "rank": "Gold",
+          "title": "District Lawn Tennis Singles Champion",
+          "year": "2025"
+        }
+      ],
+      "firstChoicePostId": "sports-captain-boy",
+      "secondChoicePostId": "school-marshal-senior-boy",
+      "sop": "My goal is to increase playground inclusion. I will introduce weekend friendly matches across houses, work closely with physical educators to build custom fitness checklists, and encourage non-sports students to discover chess and table tennis.",
+      "declaration": true,
+      "status": "Under Evaluation",
+      "submittedAt": "2026-07-05T08:00:00Z",
+      "interviewDate": "2026-07-09",
+      "interviewTime": "10:30",
+      "interviewMarks": 8.5,
+      "attendancePercentage": 92.5,
+      "attendanceMarks": 9.2,
+      "academicMarks": 8,
+      "remarks": "Extremely fit, polite, and displays perfect team-spirit ethics. Speaks with a strong resonant voice. Excellent option for Sports Captain.",
+      "recommendation": "Recommended",
+      "yearsInSchool": 4,
+      "yearsScore": 4,
+      "achievementScore": 5,
+      "disciplineMarks": 8.2,
+      "finalScore": 42.9,
+      "rankOverall": 10,
+      "rankPost": 1,
+      "rankHouse": 2,
+      "rankGender": 5
+    },
+    {
+      "id": "app-006",
+      "name": "Meera Sen",
+      "admissionNumber": "GDG-2018-3351",
+      "class": 10,
+      "section": "B",
+      "rollNumber": "15",
+      "gender": "Girl",
+      "dob": "2011-03-30",
+      "admissionDate": "2018-04-15",
+      "house": "Tagore",
+      "parentName": "Amit Sen",
+      "parentMobile": "9911445566",
+      "mobile": "9911445567",
+      "email": "meera.sen@example.com",
+      "leadershipExperience": "Founder of the Middle School Robotics Club. Tech volunteer during online session transition. Lead editor of middle science blog.",
+      "achievements": [
+        {
+          "level": "District",
+          "rank": "Silver",
+          "title": "District STEM Coding Hackathon Runners Up",
+          "year": "2025"
+        }
+      ],
+      "firstChoicePostId": "technology-captain",
+      "secondChoicePostId": "vice-president-cultural",
+      "sop": "Technology is shaping the future. I want to assist the IT department in creating student dashboards, holding AI safety seminars, and building custom digital scoreboards for school events using simplified electronics.",
+      "declaration": true,
+      "status": "Under Evaluation",
+      "submittedAt": "2026-07-05T15:10:00Z",
+      "interviewDate": "2026-07-09",
+      "interviewTime": "11:00",
+      "interviewMarks": 8.8,
+      "attendancePercentage": 95,
+      "attendanceMarks": 9.5,
+      "academicMarks": 9.5,
+      "remarks": "Technically very sound. Articulate and shows great patience. Will make a perfect Technology Captain.",
+      "recommendation": "Recommended",
+      "yearsInSchool": 8,
+      "yearsScore": 8,
+      "achievementScore": 4,
+      "disciplineMarks": 8.7,
+      "finalScore": 48.5,
+      "rankOverall": 5,
+      "rankPost": 2,
+      "rankHouse": 2,
+      "rankGender": 3
+    },
+    {
+      "id": "app-007",
+      "name": "Ishaan Verma",
+      "admissionNumber": "GDG-2017-2244",
+      "class": 11,
+      "section": "C",
+      "rollNumber": "12",
+      "gender": "Boy",
+      "dob": "2010-09-02",
+      "admissionDate": "2017-04-15",
+      "house": "Vivekanand",
+      "mobile": "9810203040",
+      "parentName": "Anil Verma",
+      "parentMobile": "9810203041",
+      "email": "ishaan.verma@example.com",
+      "leadershipExperience": "Created the Goenkan Coding League. Code compiler for math Olympiad training modules.",
+      "achievements": [
+        {
+          "level": "State",
+          "rank": "Gold",
+          "title": "State Science Exhibition First Rank in Smart Automation",
+          "year": "2025"
+        }
+      ],
+      "firstChoicePostId": "technology-captain",
+      "secondChoicePostId": "vice-head-boy",
+      "sop": "I want to apply state-of-the-art systems to simplify school queues, build a student peer feedback tool, and help my classmates leverage AI tools responsibly under school framework. I look forward to working in the cabinet.",
+      "declaration": true,
+      "status": "Under Evaluation",
+      "submittedAt": "2026-07-06T10:15:00Z",
+      "interviewDate": "2026-07-09",
+      "interviewTime": "11:30",
+      "interviewMarks": 9,
+      "attendancePercentage": 97,
+      "attendanceMarks": 9.7,
+      "academicMarks": 9.6,
+      "remarks": "Brilliant tech minds. Built a working automation prototype. Highly eligible and has a great scientific temperament.",
+      "recommendation": "Highly Recommended",
+      "yearsInSchool": 9,
+      "yearsScore": 9,
+      "achievementScore": 7,
+      "disciplineMarks": 8.7,
+      "finalScore": 53,
+      "rankOverall": 4,
+      "rankPost": 1,
+      "rankHouse": 1,
+      "rankGender": 2
+    },
+    {
+      "id": "app-008",
+      "name": "Sanya Kapoor",
+      "admissionNumber": "GDG-2020-5599",
+      "class": 9,
+      "section": "E",
+      "rollNumber": "28",
+      "gender": "Girl",
+      "dob": "2012-01-14",
+      "admissionDate": "2020-04-12",
+      "house": "Teresa",
+      "mobile": "9810112233",
+      "parentName": "Karan Kapoor",
+      "parentMobile": "9810112234",
+      "email": "sanya.kapoor@example.com",
+      "leadershipExperience": "Discipline monitor for Class VII and VIII. Core team volunteer for Eco-Club plantation drives.",
+      "achievements": [
+        {
+          "level": "School",
+          "rank": "Gold",
+          "title": "Best Eco-Volunteer Achievement Award",
+          "year": "2025"
+        }
+      ],
+      "firstChoicePostId": "discipline-captain",
+      "secondChoicePostId": "wellness-captain",
+      "sop": "Maintaining discipline is not about rules, it is about developing healthy habits. If elected, I will help implement active recess mentoring where elder students help juniors and launch our Eco-composting bins in school.",
+      "declaration": true,
+      "status": "Pending",
+      "submittedAt": "2026-07-06T16:45:00Z",
+      "interviewMarks": 7.5,
+      "attendancePercentage": 93.5,
+      "attendanceMarks": 9.35,
+      "academicMarks": 8.6,
+      "remarks": "Sincere, disciplined, and very helpful attitude. Shows great promise for a Grade IX leader.",
+      "recommendation": "Recommended",
+      "yearsInSchool": 6,
+      "yearsScore": 6,
+      "achievementScore": 3,
+      "disciplineMarks": 9.1,
+      "finalScore": 43.55,
+      "rankOverall": 9,
+      "rankPost": 1,
+      "rankHouse": 2,
+      "rankGender": 5
+    },
+    {
+      "id": "app-009",
+      "name": "Reyansh Gupta",
+      "admissionNumber": "GDG-2021-3042",
+      "class": 5,
+      "section": "C",
+      "rollNumber": "11",
+      "gender": "Boy",
+      "dob": "2016-04-05",
+      "admissionDate": "2021-04-10",
+      "house": "Vivekanand",
+      "mobile": "9822334455",
+      "parentName": "Amit Gupta",
+      "parentMobile": "9822334456",
+      "email": "reyansh.g@example.com",
+      "leadershipExperience": "Primary wing green monitor. Captained under-11 Chess House championship.",
+      "achievements": [
+        {
+          "level": "School",
+          "rank": "Gold",
+          "title": "First Rank in Science Olympiad Class IV",
+          "year": "2025"
+        }
+      ],
+      "firstChoicePostId": "junior-head-boy",
+      "secondChoicePostId": "junior-sports-captain",
+      "sop": "I want to help our primary school teachers, guide the younger Class I and II kids safely to school buses, and organize clean-classroom trophies for the primary building.",
+      "declaration": true,
+      "status": "Selected",
+      "submittedAt": "2026-07-07T09:00:00Z",
+      "interviewDate": "2026-07-09",
+      "interviewTime": "14:00",
+      "interviewMarks": 9,
+      "attendancePercentage": 96,
+      "attendanceMarks": 9.6,
+      "academicMarks": 9.4,
+      "remarks": "Splendid young boy, very smart and helpful. Very polite.",
+      "recommendation": "Highly Recommended",
+      "yearsInSchool": 5,
+      "yearsScore": 5,
+      "achievementScore": 3,
+      "disciplineMarks": 8.7,
+      "finalScore": 44.7,
+      "rankOverall": 6,
+      "rankPost": 1,
+      "rankHouse": 2,
+      "rankGender": 3
+    },
+    {
+      "id": "app-010",
+      "name": "Tanya Sen",
+      "admissionNumber": "GDG-2021-4091",
+      "class": 5,
+      "section": "A",
+      "rollNumber": "21",
+      "gender": "Girl",
+      "dob": "2016-08-11",
+      "admissionDate": "2021-04-12",
+      "house": "Tagore",
+      "mobile": "9833445566",
+      "parentName": "Lalitha Sen",
+      "parentMobile": "9833445567",
+      "email": "tanya.sen@example.com",
+      "leadershipExperience": "Wing assembly reader, active dancer in primary team fests.",
+      "achievements": [
+        {
+          "level": "School",
+          "rank": "Silver",
+          "title": "Inter-House Solo Dance Competition Second Rank",
+          "year": "2025"
+        }
+      ],
+      "firstChoicePostId": "junior-head-girl",
+      "secondChoicePostId": "junior-sports-captain",
+      "sop": "I want to lead our school prayers, welcome guests during wing events, and make sure every primary girl feels comfortable and happy on our playgrounds.",
+      "declaration": true,
+      "status": "Selected",
+      "submittedAt": "2026-07-07T11:00:00Z",
+      "interviewDate": "2026-07-09",
+      "interviewTime": "14:30",
+      "interviewMarks": 8.8,
+      "attendancePercentage": 94.5,
+      "attendanceMarks": 9.45,
+      "academicMarks": 9,
+      "remarks": "Very cheerful and energetic. She carries herself extremely well on the stage. Ideal Junior Head Girl choice.",
+      "recommendation": "Highly Recommended",
+      "yearsInSchool": 5,
+      "yearsScore": 5,
+      "achievementScore": 2,
+      "disciplineMarks": 9.9,
+      "finalScore": 44.15,
+      "rankOverall": 8,
+      "rankPost": 2,
+      "rankHouse": 3,
+      "rankGender": 4
+    }
+  ],
+  "emailLogs": [],
+  "registeredStudents": [
+    {
+      "id": "reg-001",
+      "name": "Aarav Goel",
+      "admissionNumber": "GDG-2015-8822",
+      "class": 11,
+      "section": "A",
+      "rollNumber": "14",
+      "gender": "Boy"
+    },
+    {
+      "id": "reg-002",
+      "name": "Diya Sharma",
+      "admissionNumber": "GDG-2016-1120",
+      "class": 11,
+      "section": "B",
+      "rollNumber": "08",
+      "gender": "Girl"
+    },
+    {
+      "id": "reg-003",
+      "name": "Kabir Mehra",
+      "admissionNumber": "GDG-2019-4530",
+      "class": 11,
+      "section": "C",
+      "rollNumber": "18",
+      "gender": "Boy"
+    },
+    {
+      "id": "reg-004",
+      "name": "Tanya Sen",
+      "admissionNumber": "GDG-2021-4091",
+      "class": 5,
+      "section": "A",
+      "rollNumber": "21",
+      "gender": "Girl"
+    },
+    {
+      "id": "reg-005",
+      "name": "Rohan Verma",
+      "admissionNumber": "GDG-2018-9933",
+      "class": 11,
+      "section": "A",
+      "rollNumber": "22",
+      "gender": "Boy"
+    },
+    {
+      "id": "reg-006",
+      "name": "Ananya Iyer",
+      "admissionNumber": "GDG-2017-7744",
+      "class": 11,
+      "section": "B",
+      "rollNumber": "02",
+      "gender": "Girl"
+    },
+    {
+      "id": "reg-007",
+      "name": "Ishaan Kapoor",
+      "admissionNumber": "GDG-2020-5511",
+      "class": 9,
+      "section": "C",
+      "rollNumber": "15",
+      "gender": "Boy"
+    },
+    {
+      "id": "reg-008",
+      "name": "Meera Nair",
+      "admissionNumber": "GDG-2019-2288",
+      "class": 11,
+      "section": "D",
+      "rollNumber": "19",
+      "gender": "Girl"
+    },
+    {
+      "id": "reg-009",
+      "name": "Pranav Joshi",
+      "admissionNumber": "GDG-2022-3344",
+      "class": 5,
+      "section": "B",
+      "rollNumber": "11",
+      "gender": "Boy"
+    }
+  ],
+  "supabaseConfig": {
+    "connectionString": "postgresql://postgres:nespuneet%401234@db.ppgjvetmrdpnkfshxeqp.supabase.co:5432/postgres",
+    "useSupabase": true,
+    "connected": true,
+    "lastSyncedAt": "2026-07-13T07:29:39.152Z"
+  }
+}

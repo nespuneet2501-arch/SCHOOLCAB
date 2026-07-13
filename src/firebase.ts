@@ -10,7 +10,7 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 
 // Initialize Cloud Firestore Database
-const db = getFirestore(app);
+const db = getFirestore(app, (firebaseConfig as any).firestoreDatabaseId || "(default)");
 
 // Google Auth Provider
 const googleProvider = new GoogleAuthProvider();
