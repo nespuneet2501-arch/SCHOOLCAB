@@ -5,7 +5,7 @@ import { GoogleGenAI, Type } from "@google/genai";
 import dotenv from "dotenv";
 import { createServer as createViteServer } from "vite";
 import { initializeApp } from "firebase/app";
-import { getFirestore, doc, getDoc, setDoc, getDocs, collection, writeBatch } from "firebase/firestore";
+import { getFirestore, doc, getDoc, setDoc, getDocs, collection, writeBatch, onSnapshot } from "firebase/firestore";
 import { AppState, StudentApplication, SystemConfig, Cabinet, Post, EvaluationCriterion, AchievementMatrixItem, EmailLog, RegisteredStudent } from "./src/types.js";
 
 dotenv.config();
@@ -181,6 +181,417 @@ async function saveStateToFirestore() {
   } catch (err) {
     console.error("Failed to save state to Firestore:", err);
   }
+}
+
+// Automatic setup of Supabase schema & initial seeding
+async function autoSetupSupabaseDb(connectionString: string) {
+  if (!connectionString) return;
+  console.log("Automatic Setup: Provisioning and seeding Supabase PostgreSQL database...");
+  try {
+    const { Client } = await import("pg");
+    const client = new Client({
+      connectionString,
+      ssl: { rejectUnauthorized: false }
+    });
+    await client.connect();
+
+    const sql_ddl = `
+      CREATE TABLE IF NOT EXISTS registered_students (
+        id VARCHAR(100) PRIMARY KEY,
+        admission_number VARCHAR(100) UNIQUE NOT NULL,
+        name VARCHAR(255) NOT NULL,
+        class INT NOT NULL,
+        section VARCHAR(50) NOT NULL,
+        roll_number VARCHAR(50),
+        gender VARCHAR(50)
+      );
+
+      CREATE TABLE IF NOT EXISTS email_logs (
+        id VARCHAR(100) PRIMARY KEY,
+        to_email VARCHAR(255) NOT NULL,
+        subject VARCHAR(255) NOT NULL,
+        body TEXT NOT NULL,
+        sent_at VARCHAR(100) NOT NULL,
+        status VARCHAR(50) NOT NULL
+      );
+
+      CREATE TABLE IF NOT EXISTS system_config (
+        key VARCHAR(100) PRIMARY KEY,
+        config_json JSONB NOT NULL
+      );
+
+      CREATE TABLE IF NOT EXISTS applications (
+        id VARCHAR(100) PRIMARY KEY,
+        name VARCHAR(255) NOT NULL,
+        admission_number VARCHAR(100) NOT NULL,
+        class INT NOT NULL,
+        section VARCHAR(50) NOT NULL,
+        roll_number VARCHAR(50),
+        gender VARCHAR(50),
+        dob VARCHAR(100),
+        admission_date VARCHAR(100),
+        house VARCHAR(100),
+        mobile VARCHAR(100),
+        parent_name VARCHAR(255),
+        parent_mobile VARCHAR(100),
+        email VARCHAR(255),
+        photo TEXT,
+        leadership_experience TEXT,
+        achievements JSONB,
+        first_choice_post_id VARCHAR(100),
+        second_choice_post_id VARCHAR(100),
+        sop TEXT,
+        declaration BOOLEAN,
+        submitted_at VARCHAR(100),
+        status VARCHAR(100),
+        interview_date VARCHAR(100),
+        interview_time VARCHAR(100),
+        interview_marks NUMERIC,
+        attendance_percentage NUMERIC,
+        attendance_marks NUMERIC,
+        academic_marks NUMERIC,
+        years_in_school INT,
+        years_score NUMERIC,
+        achievement_score NUMERIC,
+        discipline_marks NUMERIC,
+        final_score NUMERIC,
+        remarks TEXT,
+        recommendation VARCHAR(100),
+        ai_recommendation JSONB
+      );
+    `;
+
+    await client.query(sql_ddl);
+
+    // Seed local registered students
+    const localRegStudents = state.registeredStudents || [];
+    for (const student of localRegStudents) {
+      await client.query(`
+        INSERT INTO registered_students (id, admission_number, name, class, section, roll_number, gender)
+        VALUES ($1, $2, $3, $4, $5, $6, $7)
+        ON CONFLICT (admission_number) DO UPDATE SET
+          name = EXCLUDED.name,
+          class = EXCLUDED.class,
+          section = EXCLUDED.section,
+          roll_number = EXCLUDED.roll_number,
+          gender = EXCLUDED.gender
+      `, [student.id, student.admissionNumber, student.name, student.class, student.section, student.rollNumber || null, student.gender || null]);
+    }
+
+    // Seed email logs
+    const localLogs = state.emailLogs || [];
+    for (const log of localLogs) {
+      await client.query(`
+        INSERT INTO email_logs (id, to_email, subject, body, sent_at, status)
+        VALUES ($1, $2, $3, $4, $5, $6)
+        ON CONFLICT (id) DO NOTHING
+      `, [log.id, log.to, log.subject, log.body, log.sentAt, log.status]);
+    }
+
+    // Seed config JSON
+    await client.query(`
+      INSERT INTO system_config (key, config_json)
+      VALUES ($1, $2)
+      ON CONFLICT (key) DO UPDATE SET config_json = EXCLUDED.config_json
+    `, ['current_config', JSON.stringify(state.config)]);
+
+    // Seed applications
+    const localApps = state.applications || [];
+    for (const app of localApps) {
+      await client.query(`
+        INSERT INTO applications (
+          id, name, admission_number, class, section, roll_number, gender, dob, admission_date, house,
+          mobile, parent_name, parent_mobile, email, photo, leadership_experience, achievements,
+          first_choice_post_id, second_choice_post_id, sop, declaration, submitted_at, status,
+          interview_date, interview_time, interview_marks, attendance_percentage, attendance_marks,
+          academic_marks, years_in_school, years_score, achievement_score, discipline_marks, final_score,
+          remarks, recommendation, ai_recommendation
+        ) VALUES (
+          $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36, $37
+        ) ON CONFLICT (id) DO UPDATE SET
+          name = EXCLUDED.name,
+          status = EXCLUDED.status,
+          interview_date = EXCLUDED.interview_date,
+          interview_time = EXCLUDED.interview_time,
+          interview_marks = EXCLUDED.interview_marks,
+          attendance_percentage = EXCLUDED.attendance_percentage,
+          attendance_marks = EXCLUDED.attendance_marks,
+          academic_marks = EXCLUDED.academic_marks,
+          years_in_school = EXCLUDED.years_in_school,
+          years_score = EXCLUDED.years_score,
+          achievement_score = EXCLUDED.achievement_score,
+          discipline_marks = EXCLUDED.discipline_marks,
+          final_score = EXCLUDED.final_score,
+          remarks = EXCLUDED.remarks,
+          recommendation = EXCLUDED.recommendation,
+          ai_recommendation = EXCLUDED.ai_recommendation
+      `, [
+        app.id, app.name, app.admissionNumber, app.class, app.section, app.rollNumber || null, app.gender || null, app.dob || null, app.admissionDate || null, app.house || null,
+        app.mobile || null, app.parentName || null, app.parentMobile || null, app.email || null, app.photo || null, app.leadershipExperience || null, JSON.stringify(app.achievements || []),
+        app.firstChoicePostId || null, app.secondChoicePostId || null, app.sop || null, app.declaration || false, app.submittedAt || null, app.status || 'Pending',
+        app.interviewDate || null, app.interviewTime || null, app.interviewMarks || null, app.attendancePercentage || null, app.attendanceMarks || null,
+        app.academicMarks || null, app.yearsInSchool || null, app.yearsScore || null, app.achievementScore || null, app.disciplineMarks || null, app.finalScore || null,
+        app.remarks || null, app.recommendation || null, app.aiRecommendation ? JSON.stringify(app.aiRecommendation) : null
+      ]);
+    }
+
+    await client.end();
+    console.log("Automatic Setup: Supabase successfully provisioned, schema created, and state synchronized!");
+  } catch (err: any) {
+    console.error("Automatic Setup: Failed to setup Supabase database on connection configuration:", err);
+  }
+}
+
+// Real-time listener bridge from Firestore down to Supabase and local cache
+let isRealtimeSyncInitialized = false;
+function startFirestoreRealtimeSync() {
+  if (!firestoreDb) return;
+  if (isRealtimeSyncInitialized) return;
+  isRealtimeSyncInitialized = true;
+  console.log("Setting up real-time Cloud Firestore listener bridge...");
+
+  // 1. Applications Real-time Sync
+  onSnapshot(collection(firestoreDb, "applications"), (snapshot) => {
+    snapshot.docChanges().forEach(async (change) => {
+      const app = change.doc.data() as StudentApplication;
+      if (change.type === "added" || change.type === "modified") {
+        const idx = state.applications.findIndex(a => a.id === app.id);
+        if (idx !== -1) {
+          state.applications[idx] = app;
+        } else {
+          state.applications.push(app);
+        }
+
+        // Save locally non-blocking
+        try { fs.writeFileSync(DB_FILE_PATH, JSON.stringify(state, null, 2), "utf8"); } catch(e){}
+
+        // Sync to Supabase
+        if (state.supabaseConfig.useSupabase && state.supabaseConfig.connectionString) {
+          try {
+            const { Client } = await import("pg");
+            const client = new Client({
+              connectionString: state.supabaseConfig.connectionString,
+              ssl: { rejectUnauthorized: false }
+            });
+            await client.connect();
+            await client.query(`
+              INSERT INTO applications (
+                id, name, admission_number, class, section, roll_number, gender, dob, admission_date, house,
+                mobile, parent_name, parent_mobile, email, photo, leadership_experience, achievements,
+                first_choice_post_id, second_choice_post_id, sop, declaration, submitted_at, status,
+                interview_date, interview_time, interview_marks, attendance_percentage, attendance_marks,
+                academic_marks, years_in_school, years_score, achievement_score, discipline_marks, final_score,
+                remarks, recommendation, ai_recommendation
+              ) VALUES (
+                $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36, $37
+              ) ON CONFLICT (id) DO UPDATE SET
+                name = EXCLUDED.name,
+                status = EXCLUDED.status,
+                interview_date = EXCLUDED.interview_date,
+                interview_time = EXCLUDED.interview_time,
+                interview_marks = EXCLUDED.interview_marks,
+                attendance_percentage = EXCLUDED.attendance_percentage,
+                attendance_marks = EXCLUDED.attendance_marks,
+                academic_marks = EXCLUDED.academic_marks,
+                years_in_school = EXCLUDED.years_in_school,
+                years_score = EXCLUDED.years_score,
+                achievement_score = EXCLUDED.achievement_score,
+                discipline_marks = EXCLUDED.discipline_marks,
+                final_score = EXCLUDED.final_score,
+                remarks = EXCLUDED.remarks,
+                recommendation = EXCLUDED.recommendation,
+                ai_recommendation = EXCLUDED.ai_recommendation
+            `, [
+              app.id, app.name, app.admissionNumber, app.class, app.section, app.rollNumber || null, app.gender || null, app.dob || null, app.admissionDate || null, app.house || null,
+              app.mobile || null, app.parentName || null, app.parentMobile || null, app.email || null, app.photo || null, app.leadershipExperience || null, JSON.stringify(app.achievements || []),
+              app.firstChoicePostId || null, app.secondChoicePostId || null, app.sop || null, app.declaration || false, app.submittedAt || null, app.status || 'Pending',
+              app.interviewDate || null, app.interviewTime || null, app.interviewMarks || null, app.attendancePercentage || null, app.attendanceMarks || null,
+              app.academicMarks || null, app.yearsInSchool || null, app.yearsScore || null, app.achievementScore || null, app.disciplineMarks || null, app.finalScore || null,
+              app.remarks || null, app.recommendation || null, app.aiRecommendation ? JSON.stringify(app.aiRecommendation) : null
+            ]);
+            await client.end();
+            console.log(`Real-time Sync: Successfully propagated application ${app.id} from Firestore to Supabase.`);
+          } catch (syncErr) {
+            console.error(`Real-time Sync Error for application ${app.id}:`, syncErr);
+          }
+        }
+      } else if (change.type === "removed") {
+        state.applications = state.applications.filter(a => a.id !== change.doc.id);
+        try { fs.writeFileSync(DB_FILE_PATH, JSON.stringify(state, null, 2), "utf8"); } catch(e){}
+        
+        if (state.supabaseConfig.useSupabase && state.supabaseConfig.connectionString) {
+          try {
+            const { Client } = await import("pg");
+            const client = new Client({
+              connectionString: state.supabaseConfig.connectionString,
+              ssl: { rejectUnauthorized: false }
+            });
+            await client.connect();
+            await client.query("DELETE FROM applications WHERE id = $1", [change.doc.id]);
+            await client.end();
+            console.log(`Real-time Sync: Deleted application ${change.doc.id} from Supabase.`);
+          } catch (syncErr) {
+            console.error(`Real-time Sync Delete Error:`, syncErr);
+          }
+        }
+      }
+    });
+  }, (err) => console.error("Firestore applications onSnapshot error:", err));
+
+  // 2. Registered Students Real-time Sync
+  onSnapshot(collection(firestoreDb, "registered_students"), (snapshot) => {
+    snapshot.docChanges().forEach(async (change) => {
+      const student = change.doc.data() as RegisteredStudent;
+      if (change.type === "added" || change.type === "modified") {
+        const idx = state.registeredStudents.findIndex(s => s.id === student.id);
+        if (idx !== -1) {
+          state.registeredStudents[idx] = student;
+        } else {
+          state.registeredStudents.push(student);
+        }
+
+        try { fs.writeFileSync(DB_FILE_PATH, JSON.stringify(state, null, 2), "utf8"); } catch(e){}
+
+        if (state.supabaseConfig.useSupabase && state.supabaseConfig.connectionString) {
+          try {
+            const { Client } = await import("pg");
+            const client = new Client({
+              connectionString: state.supabaseConfig.connectionString,
+              ssl: { rejectUnauthorized: false }
+            });
+            await client.connect();
+            await client.query(`
+              INSERT INTO registered_students (id, admission_number, name, class, section, roll_number, gender)
+              VALUES ($1, $2, $3, $4, $5, $6, $7)
+              ON CONFLICT (admission_number) DO UPDATE SET
+                name = EXCLUDED.name,
+                class = EXCLUDED.class,
+                section = EXCLUDED.section,
+                roll_number = EXCLUDED.roll_number,
+                gender = EXCLUDED.gender
+            `, [student.id, student.admissionNumber, student.name, student.class, student.section, student.rollNumber || null, student.gender || null]);
+            await client.end();
+            console.log(`Real-time Sync: Successfully propagated student ${student.id} from Firestore to Supabase.`);
+          } catch (syncErr) {
+            console.error(`Real-time Sync Error for student ${student.id}:`, syncErr);
+          }
+        }
+      } else if (change.type === "removed") {
+        state.registeredStudents = state.registeredStudents.filter(s => s.id !== change.doc.id);
+        try { fs.writeFileSync(DB_FILE_PATH, JSON.stringify(state, null, 2), "utf8"); } catch(e){}
+
+        if (state.supabaseConfig.useSupabase && state.supabaseConfig.connectionString) {
+          try {
+            const { Client } = await import("pg");
+            const client = new Client({
+              connectionString: state.supabaseConfig.connectionString,
+              ssl: { rejectUnauthorized: false }
+            });
+            await client.connect();
+            await client.query("DELETE FROM registered_students WHERE id = $1", [change.doc.id]);
+            await client.end();
+            console.log(`Real-time Sync: Deleted student ${change.doc.id} from Supabase.`);
+          } catch (syncErr) {
+            console.error(`Real-time Sync Student Delete Error:`, syncErr);
+          }
+        }
+      }
+    });
+  }, (err) => console.error("Firestore registered_students onSnapshot error:", err));
+
+  // 3. Email Logs Real-time Sync
+  onSnapshot(collection(firestoreDb, "email_logs"), (snapshot) => {
+    snapshot.docChanges().forEach(async (change) => {
+      const log = change.doc.data() as EmailLog;
+      if (change.type === "added" || change.type === "modified") {
+        const idx = state.emailLogs.findIndex(l => l.id === log.id);
+        if (idx !== -1) {
+          state.emailLogs[idx] = log;
+        } else {
+          state.emailLogs.unshift(log);
+        }
+
+        try { fs.writeFileSync(DB_FILE_PATH, JSON.stringify(state, null, 2), "utf8"); } catch(e){}
+
+        if (state.supabaseConfig.useSupabase && state.supabaseConfig.connectionString) {
+          try {
+            const { Client } = await import("pg");
+            const client = new Client({
+              connectionString: state.supabaseConfig.connectionString,
+              ssl: { rejectUnauthorized: false }
+            });
+            await client.connect();
+            await client.query(`
+              INSERT INTO email_logs (id, to_email, subject, body, sent_at, status)
+              VALUES ($1, $2, $3, $4, $5, $6)
+              ON CONFLICT (id) DO NOTHING
+            `, [log.id, log.to, log.subject, log.body, log.sentAt, log.status]);
+            await client.end();
+            console.log(`Real-time Sync: Successfully propagated email log ${log.id} to Supabase.`);
+          } catch (syncErr) {
+            console.error(`Real-time Sync Error for email log ${log.id}:`, syncErr);
+          }
+        }
+      }
+    });
+  }, (err) => console.error("Firestore email_logs onSnapshot error:", err));
+
+  // 4. System Config & Supabase Config Real-time Sync
+  onSnapshot(collection(firestoreDb, "system_config"), (snapshot) => {
+    snapshot.docChanges().forEach(async (change) => {
+      const data = change.doc.data();
+      if (change.type === "added" || change.type === "modified") {
+        if (change.doc.id === "current_config") {
+          state.config = data as SystemConfig;
+          try { fs.writeFileSync(DB_FILE_PATH, JSON.stringify(state, null, 2), "utf8"); } catch(e){}
+
+          if (state.supabaseConfig.useSupabase && state.supabaseConfig.connectionString) {
+            try {
+              const { Client } = await import("pg");
+              const client = new Client({
+                connectionString: state.supabaseConfig.connectionString,
+                ssl: { rejectUnauthorized: false }
+              });
+              await client.connect();
+              await client.query(`
+                INSERT INTO system_config (key, config_json)
+                VALUES ($1, $2)
+                ON CONFLICT (key) DO UPDATE SET config_json = EXCLUDED.config_json
+              `, ['current_config', JSON.stringify(state.config)]);
+              await client.end();
+              console.log(`Real-time Sync: Propagated system config update to Supabase.`);
+            } catch (syncErr) {
+              console.error(`Real-time Sync Config Error:`, syncErr);
+            }
+          }
+        } else if (change.doc.id === "supabase_config") {
+          const fbSupabaseConfig = data as any;
+          if (fbSupabaseConfig) {
+            const oldConnectionString = state.supabaseConfig.connectionString;
+            const oldUseSupabase = state.supabaseConfig.useSupabase;
+            
+            state.supabaseConfig = {
+              connectionString: fbSupabaseConfig.connectionString || '',
+              connected: fbSupabaseConfig.connected || false,
+              useSupabase: fbSupabaseConfig.useSupabase || false,
+              lastSyncedAt: fbSupabaseConfig.lastSyncedAt || ''
+            };
+            try { fs.writeFileSync(DB_FILE_PATH, JSON.stringify(state, null, 2), "utf8"); } catch(e){}
+            console.log("Real-time Sync: Loaded updated Supabase Config from Firestore. Use:", state.supabaseConfig.useSupabase);
+
+            // AUTO HANDSHAKE / SCHEMAS SETUP IF CONNECTION SPECIFIED AND TOGGLED TO TRUE
+            if (state.supabaseConfig.useSupabase && state.supabaseConfig.connectionString) {
+              if (state.supabaseConfig.connectionString !== oldConnectionString || !oldUseSupabase) {
+                autoSetupSupabaseDb(state.supabaseConfig.connectionString).catch(setupErr => {
+                  console.error("Auto setup database triggered by config listener failed:", setupErr);
+                });
+              }
+            }
+          }
+        }
+      }
+    });
+  }, (err) => console.error("Firestore system_config onSnapshot error:", err));
 }
 
 // Default initial config
@@ -833,6 +1244,9 @@ async function loadDatabase() {
   if (state.supabaseConfig.useSupabase && state.supabaseConfig.connectionString) {
     syncFromSupabase().catch(e => console.error("Initial Supabase sync error:", e));
   }
+
+  // Start the real-time Firestore synchronization listener
+  startFirestoreRealtimeSync();
 }
 
 // Background sync database down to Supabase (write operation)

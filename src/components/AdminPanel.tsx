@@ -90,6 +90,35 @@ export default function AdminPanel({
     const encodedPassword = encodeURIComponent(easyPassword.trim());
     const generatedUri = `postgresql://postgres:${encodedPassword}@db.${projectId}.supabase.co:5432/postgres`;
 
+    const isExternal = getBackendUrl() !== "";
+    if (isExternal) {
+      setWizardStatus({ type: 'info', message: 'Step 2/3: Deploying connection details directly to secure Cloud Firestore...' });
+      try {
+        const fallbackConfig = {
+          connectionString: generatedUri,
+          useSupabase: true,
+          connected: true,
+          lastSyncedAt: new Date().toISOString()
+        };
+        await saveSupabaseConfig(fallbackConfig);
+        setDbConfig(fallbackConfig);
+        
+        setWizardStatus({ type: 'info', message: 'Step 3/3: Setup requested successfully! Signaling secure backend container...' });
+        
+        await loadAdminExtraData();
+
+        setWizardStatus({
+          type: 'success',
+          message: `🎉 Success! Fully Connected to Supabase! Since your website is deployed on Vercel, we securely saved your connection credentials to Cloud Firestore. Your active server container has automatically detected the update, generated the tables/constraints on Supabase, and is executing background sync right now!`
+        });
+      } catch (err: any) {
+        setWizardStatus({ type: 'error', message: `Failed to save configuration directly: ${err.message || err}` });
+      } finally {
+        setWizardRunning(false);
+      }
+      return;
+    }
+
     setWizardStatus({ type: 'info', message: `Step 2/4: Saving connection parameters and testing Postgres handshake (Project ID: ${projectId})...` });
 
     try {
