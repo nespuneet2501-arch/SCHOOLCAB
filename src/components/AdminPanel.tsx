@@ -1300,86 +1300,150 @@ export default function AdminPanel({
 
             {/* AUTOMATED CONNECTOR WIZARD SECTION */}
             <div className="p-5 bg-slate-50/60 rounded-xl border border-slate-200 space-y-4">
-              <div className="flex items-center gap-1.5">
-                <Sparkles className="w-4 h-4 text-amber-500" />
-                <h4 className="text-xs font-bold text-slate-800">Supabase Easy Connection Wizard</h4>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-1.5">
+                  <Sparkles className="w-4 h-4 text-amber-500" />
+                  <h4 className="text-xs font-bold text-slate-800">Supabase Easy Connection Wizard</h4>
+                </div>
+                {dbConfig.connected && (
+                  <span className="px-2 py-0.5 bg-emerald-100 text-emerald-800 rounded text-[9px] font-bold font-mono">
+                    ✓ ACTIVE & RUNNING
+                  </span>
+                )}
               </div>
 
-              {typeof window !== 'undefined' && window.location.hostname.includes('vercel.app') && (
-                <div className="p-3.5 bg-amber-50 border border-amber-200 text-amber-800 rounded-lg text-xs leading-relaxed space-y-1 font-sans">
-                  <p className="font-bold">⚠️ RUN CONFIGURATION IN GOOGLE AI STUDIO</p>
-                  <p>
-                    Because this Vercel site is a static frontend deployment, your browser cannot execute direct database handshakes or database seeding from this domain.
-                  </p>
-                  <p className="font-medium">
-                    👉 <strong>Action Required:</strong> Open your Google AI Studio workspace preview, navigate to the <strong>ADMINISTRATION</strong> tab, and click <strong>"Configure & Complete 100% Setup"</strong> there (where the secure server container runs).
-                  </p>
-                  <p>
-                    Once successfully configured in AI Studio, Vercel will automatically fetch the credentials from Firestore and show <strong>CONNECTED & ACTIVE</strong>!
-                  </p>
-                </div>
-              )}
+              {dbConfig.connected ? (
+                <div className="p-4 bg-emerald-50 border border-emerald-200 text-emerald-900 rounded-xl space-y-3 font-sans">
+                  <div className="flex items-start gap-2.5">
+                    <CheckSquare className="w-4.5 h-4.5 text-emerald-600 mt-0.5 shrink-0" />
+                    <div className="space-y-1 text-xs">
+                      <p className="font-bold text-emerald-950">✓ Your database is successfully linked and active!</p>
+                      <p className="leading-relaxed text-emerald-800/90">
+                        The Student Cabinet Nomination app is connected to your Supabase PostgreSQL instance. All applications, configuration, registered students, and email logs are automatically synchronized between Cloud Firestore and Supabase in real-time.
+                      </p>
+                      {dbConfig.lastSyncedAt && (
+                        <p className="text-[10px] text-emerald-700 font-mono">
+                          Last synchronized: {new Date(dbConfig.lastSyncedAt).toLocaleString()}
+                        </p>
+                      )}
+                    </div>
+                  </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-slate-600 uppercase block">1. Paste Supabase URL or Project ID</label>
-                  <input
-                    type="text"
-                    placeholder="https://supabase.com/dashboard/project/your-project-id"
-                    value={easyUrl}
-                    onChange={e => setEasyUrl(e.target.value)}
-                    className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-1 focus:ring-slate-900 bg-white"
-                  />
-                  <span className="text-[9px] text-slate-400 block">
-                    Copy and paste the URL from your browser's address bar when looking at your Supabase project!
-                  </span>
-                  {easyUrl && (
-                    <div className="text-[9px] text-emerald-600 font-mono mt-0.5">
-                      ✓ Detected Project ID: {(() => {
-                        let tempId = easyUrl.trim();
-                        if (tempId.includes('project/')) {
-                          const parts = tempId.split('project/');
-                          if (parts[1]) tempId = parts[1].split('/')[0];
-                        } else if (tempId.includes('supabase.co')) {
-                          const parts = tempId.split('db.');
-                          if (parts[1]) tempId = parts[1].split('.')[0];
+                  <div className="pt-1 flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        if (confirm("Are you sure you want to disconnect Supabase? This will disable background sync but your existing data is safe in Firestore.")) {
+                          try {
+                            const inactiveConfig = {
+                              ...dbConfig,
+                              connected: false,
+                              useSupabase: false,
+                              lastSyncedAt: new Date().toISOString()
+                            };
+                            await saveSupabaseConfig(inactiveConfig);
+                            setDbConfig(inactiveConfig);
+                            alert("Supabase disconnected successfully!");
+                          } catch (err: any) {
+                            alert("Failed to disconnect: " + err.message);
+                          }
                         }
-                        return tempId.replace(/[^a-zA-Z0-9-]/g, '') || 'Parsing...';
-                      })()}
+                      }}
+                      className="px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-lg text-[10px] font-bold transition flex items-center gap-1"
+                    >
+                      Disconnect Database
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        // Clear the easyUrl and easyPassword to let them re-configure or enter new credentials
+                        setEasyUrl('');
+                        setEasyPassword('');
+                        // Show input fields to overwrite
+                        setDbConfig(prev => ({ ...prev, connected: false }));
+                      }}
+                      className="px-3 py-1.5 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 rounded-lg text-[10px] font-bold transition flex items-center gap-1"
+                    >
+                      Update / Change Credentials
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  {typeof window !== 'undefined' && window.location.hostname.includes('vercel.app') && (
+                    <div className="p-3.5 bg-blue-50 border border-blue-200 text-blue-900 rounded-lg text-xs leading-relaxed space-y-1 font-sans">
+                      <p className="font-bold text-blue-950">⚡ AUTOMATED CLOUD FIRESTORE BRIDGE ACTIVE</p>
+                      <p>
+                        Since your website is deployed on Vercel, browser security blocks direct PG database calls from this domain.
+                      </p>
+                      <p className="font-medium text-blue-950">
+                        👉 <strong>No Manual Actions Required:</strong> Paste your Supabase project link and database password below. We will securely save them to Google Cloud Firestore. Your secure background container will automatically detect them, initialize your SQL tables, and start synchronization in seconds!
+                      </p>
                     </div>
                   )}
-                </div>
 
-                <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-slate-600 uppercase block">2. Enter Database Password</label>
-                  <input
-                    type="password"
-                    placeholder="The password you set in Supabase"
-                    value={easyPassword}
-                    onChange={e => setEasyPassword(e.target.value)}
-                    className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-1 focus:ring-slate-900 bg-white"
-                  />
-                  <span className="text-[9px] text-slate-400 block">
-                    The database password you specified during project creation in Supabase dashboard.
-                  </span>
-                </div>
-              </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold text-slate-600 uppercase block">1. Paste Supabase URL or Project ID</label>
+                      <input
+                        type="text"
+                        placeholder="https://supabase.com/dashboard/project/your-project-id"
+                        value={easyUrl}
+                        onChange={e => setEasyUrl(e.target.value)}
+                        className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-1 focus:ring-slate-900 bg-white"
+                      />
+                      <span className="text-[9px] text-slate-400 block">
+                        Copy and paste the URL from your browser's address bar when looking at your Supabase project!
+                      </span>
+                      {easyUrl && (
+                        <div className="text-[9px] text-emerald-600 font-mono mt-0.5">
+                          ✓ Detected Project ID: {(() => {
+                            let tempId = easyUrl.trim();
+                            if (tempId.includes('project/')) {
+                              const parts = tempId.split('project/');
+                              if (parts[1]) tempId = parts[1].split('/')[0];
+                            } else if (tempId.includes('supabase.co')) {
+                              const parts = tempId.split('db.');
+                              if (parts[1]) tempId = parts[1].split('.')[0];
+                            }
+                            return tempId.replace(/[^a-zA-Z0-9-]/g, '') || 'Parsing...';
+                          })()}
+                        </div>
+                      )}
+                    </div>
 
-              <div className="pt-2 flex justify-start">
-                <button
-                  type="button"
-                  disabled={wizardRunning}
-                  onClick={handleRunEasyWizard}
-                  className="px-5 py-2.5 bg-slate-900 hover:bg-slate-800 disabled:bg-slate-400 text-white rounded-xl text-xs font-bold font-sans flex items-center gap-2 shadow-sm transition"
-                >
-                  {wizardRunning ? (
-                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                  ) : (
-                    <Sparkles className="w-3.5 h-3.5 text-amber-300" />
-                  )}
-                  <span>{wizardRunning ? 'Auto-Configuring Now...' : '⚡ Configure & Complete 100% Setup'}</span>
-                </button>
-              </div>
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold text-slate-600 uppercase block">2. Enter Database Password</label>
+                      <input
+                        type="password"
+                        placeholder="The password you set in Supabase"
+                        value={easyPassword}
+                        onChange={e => setEasyPassword(e.target.value)}
+                        className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-1 focus:ring-slate-900 bg-white"
+                      />
+                      <span className="text-[9px] text-slate-400 block">
+                        The database password you specified during project creation in Supabase dashboard.
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="pt-2 flex justify-start">
+                    <button
+                      type="button"
+                      disabled={wizardRunning}
+                      onClick={handleRunEasyWizard}
+                      className="px-5 py-2.5 bg-slate-900 hover:bg-slate-800 disabled:bg-slate-400 text-white rounded-xl text-xs font-bold font-sans flex items-center gap-2 shadow-sm transition"
+                    >
+                      {wizardRunning ? (
+                        <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                      ) : (
+                        <Sparkles className="w-3.5 h-3.5 text-amber-300" />
+                      )}
+                      <span>{wizardRunning ? 'Auto-Configuring Now...' : '⚡ Configure & Complete 100% Setup'}</span>
+                    </button>
+                  </div>
+                </>
+              )}
 
               {/* Wizard Status Alert box */}
               {wizardStatus.message && (

@@ -143,6 +143,7 @@ export interface SupabaseConfig {
   connected: boolean;
   useSupabase: boolean;
   lastSyncedAt?: string;
+  error?: string;
 }
 
 export interface AppState {

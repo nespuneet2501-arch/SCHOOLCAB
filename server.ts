@@ -337,8 +337,36 @@ async function autoSetupSupabaseDb(connectionString: string) {
 
     await client.end();
     console.log("Automatic Setup: Supabase successfully provisioned, schema created, and state synchronized!");
+
+    // Update successful connection status back to Firestore and local state
+    state.supabaseConfig.connected = true;
+    state.supabaseConfig.lastSyncedAt = new Date().toISOString();
+    state.supabaseConfig.error = "";
+    try { fs.writeFileSync(DB_FILE_PATH, JSON.stringify(state, null, 2), "utf8"); } catch(e){}
+    if (firestoreDb) {
+      try {
+        await setDoc(doc(firestoreDb, "system_config", "supabase_config"), {
+          ...state.supabaseConfig
+        });
+        console.log("Automatic Setup: Updated successful connection status in Cloud Firestore!");
+      } catch (fsErr) {
+        console.error("Failed to update successful connection status in Cloud Firestore:", fsErr);
+      }
+    }
   } catch (err: any) {
     console.error("Automatic Setup: Failed to setup Supabase database on connection configuration:", err);
+    state.supabaseConfig.connected = false;
+    state.supabaseConfig.error = err.message || String(err);
+    try { fs.writeFileSync(DB_FILE_PATH, JSON.stringify(state, null, 2), "utf8"); } catch(e){}
+    if (firestoreDb) {
+      try {
+        await setDoc(doc(firestoreDb, "system_config", "supabase_config"), {
+          ...state.supabaseConfig
+        });
+      } catch (fsErr) {
+        console.error("Failed to update error connection status in Cloud Firestore:", fsErr);
+      }
+    }
   }
 }
 
