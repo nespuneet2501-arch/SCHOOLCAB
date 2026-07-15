@@ -138,14 +138,16 @@ export default function BrandingHeader({
         )}
 
         {/* Demo reset button */}
-        <button
-          onClick={onResetDemo}
-          disabled={isResetting}
-          className="flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-bold rounded-xl bg-slate-900 hover:bg-slate-800 text-white disabled:opacity-50 transition shadow-xs"
-        >
-          <RefreshCw className={`w-3.5 h-3.5 ${isResetting ? 'animate-spin' : ''}`} />
-          <span>Reset Demo</span>
-        </button>
+        {currentRole !== 'student' && (
+          <button
+            onClick={onResetDemo}
+            disabled={isResetting}
+            className="flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-bold rounded-xl bg-slate-900 hover:bg-slate-800 text-white disabled:opacity-50 transition shadow-xs"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${isResetting ? 'animate-spin' : ''}`} />
+            <span>Reset Demo</span>
+          </button>
+        )}
 
       </div>
     </header>

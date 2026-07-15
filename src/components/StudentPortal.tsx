@@ -24,7 +24,14 @@ export default function StudentPortal({
   user
 }: StudentPortalProps) {
   // Navigation tabs within Student Portal
-  const [activeTab, setActiveTab] = useState<'apply' | 'track'>('track');
+  const [activeTab, setActiveTab] = useState<'apply' | 'track'>('apply');
+  const [showRegisteredList, setShowRegisteredList] = useState(false);
+  
+  // Submission progress & status states
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitProgress, setSubmitProgress] = useState(0);
+  const [submissionStatus, setSubmissionStatus] = useState<'idle' | 'success' | 'failed'>('idle');
+  const [trackingId, setTrackingId] = useState('');
   
   // Pre-registered student lookup states
   const [registeredList, setRegisteredList] = useState<any[]>([]);
@@ -185,7 +192,7 @@ export default function StudentPortal({
   };
 
   // Handle Submit Form
-  const handleFormSubmit = (e: React.FormEvent) => {
+  const handleFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setFormError('');
     setFormSuccess('');
@@ -203,8 +210,12 @@ export default function StudentPortal({
     if (!dob) return setFormError('Date of Birth is required.');
     if (!firstChoicePostId) return setFormError('Please select your first choice post.');
     if (!secondChoicePostId) return setFormError('Please select your second choice post.');
+    
+    // Strict requirement validation
     if (firstChoicePostId === secondChoicePostId) {
-      return setFormError('First choice post and Second choice post must not be the same.');
+      const selectedPost = posts.find(p => p.id === firstChoicePostId);
+      const postTitle = selectedPost ? selectedPost.title : 'same position';
+      return setFormError(`If you have chosen the ${postTitle} position for nomination, you cannot select the ${postTitle} as a second choice.`);
     }
 
     const calculatedAdmNum = admissionNumber ? admissionNumber.trim() : 'GDG-2026-' + Math.floor(1000 + Math.random() * 9000);
@@ -234,23 +245,55 @@ export default function StudentPortal({
     };
 
     if (isEditing) {
-      onUpdateApplication(editingAppId, payload);
-      setFormSuccess('Your application has been updated successfully.');
-      setIsEditing(false);
-      setEditingAppId('');
-      // Refresh tracked app
-      const updatedApp = applications.find(a => a.id === editingAppId);
-      if (updatedApp) setTrackedApp({ ...updatedApp, ...payload });
-      setActiveTab('track');
+      try {
+        await onUpdateApplication(editingAppId, payload);
+        setFormSuccess('Your application has been updated successfully.');
+        setIsEditing(false);
+        setEditingAppId('');
+        // Refresh tracked app
+        const updatedApp = applications.find(a => a.id === editingAppId);
+        if (updatedApp) setTrackedApp({ ...updatedApp, ...payload });
+        setActiveTab('track');
+      } catch (err: any) {
+        setFormError(err.message || 'Failed to update application.');
+      }
     } else {
-      onSubmitApplication(payload);
-      setFormSuccess(`Your application was submitted successfully! Please write down your Tracking ID to check status: ${calculatedAdmNum}`);
-      
-      // Reset form fields
-      setName('');
-      setSection('A');
-      setFirstChoicePostId('');
-      setSecondChoicePostId('');
+      // Start submission with progress bar animation
+      setIsSubmitting(true);
+      setSubmitProgress(0);
+      setSubmissionStatus('idle');
+
+      const interval = setInterval(() => {
+        setSubmitProgress(prev => {
+          if (prev >= 95) {
+            clearInterval(interval);
+            return 95;
+          }
+          return prev + 5;
+        });
+      }, 50);
+
+      try {
+        await onSubmitApplication(payload);
+        clearInterval(interval);
+        setSubmitProgress(100);
+        
+        setTimeout(() => {
+          setIsSubmitting(false);
+          setSubmissionStatus('success');
+          setTrackingId(calculatedAdmNum);
+          setFormSuccess(`Your application was submitted successfully! Please write down your Tracking ID to check status: ${calculatedAdmNum}`);
+        }, 300);
+      } catch (err: any) {
+        clearInterval(interval);
+        setSubmitProgress(100);
+        
+        setTimeout(() => {
+          setIsSubmitting(false);
+          setSubmissionStatus('failed');
+          setFormError(err.message || 'Submission failed. The registration could not be saved.');
+        }, 300);
+      }
     }
   };
 
@@ -291,40 +334,42 @@ export default function StudentPortal({
 
   return (
     <div className="space-y-6" id="student-portal">
-      {/* Tab Selectors */}
-      <div className="flex border-b border-slate-200">
-        <button
-          onClick={() => {
-            setActiveTab('track');
-            setFormSuccess('');
-            setFormError('');
-          }}
-          className={`flex items-center gap-2 px-6 py-3 border-b-2 font-display text-sm font-semibold transition-all ${
-            activeTab === 'track'
-              ? 'border-slate-900 text-slate-900'
-              : 'border-transparent text-slate-400 hover:text-slate-600'
-          }`}
-        >
-          <Search className="w-4 h-4" />
-          <span>Track Nomination & Status</span>
-        </button>
-        <button
-          onClick={() => {
-            setActiveTab('apply');
-            setIsEditing(false);
-            setFormSuccess('');
-            setFormError('');
-          }}
-          className={`flex items-center gap-2 px-6 py-3 border-b-2 font-display text-sm font-semibold transition-all ${
-            activeTab === 'apply'
-              ? 'border-slate-900 text-slate-900'
-              : 'border-transparent text-slate-400 hover:text-slate-600'
-          }`}
-        >
-          <FileText className="w-4 h-4" />
-          <span>{isEditing ? 'Edit Application Form' : 'New Application Form'}</span>
-        </button>
-      </div>
+      {/* Tab Selectors - Hidden to ensure only nomination form is visible in student login */}
+      {false && (
+        <div className="flex border-b border-slate-200">
+          <button
+            onClick={() => {
+              setActiveTab('track');
+              setFormSuccess('');
+              setFormError('');
+            }}
+            className={`flex items-center gap-2 px-6 py-3 border-b-2 font-display text-sm font-semibold transition-all ${
+              activeTab === 'track'
+                ? 'border-slate-900 text-slate-900'
+                : 'border-transparent text-slate-400 hover:text-slate-600'
+            }`}
+          >
+            <Search className="w-4 h-4" />
+            <span>Track Nomination & Status</span>
+          </button>
+          <button
+            onClick={() => {
+              setActiveTab('apply');
+              setIsEditing(false);
+              setFormSuccess('');
+              setFormError('');
+            }}
+            className={`flex items-center gap-2 px-6 py-3 border-b-2 font-display text-sm font-semibold transition-all ${
+              activeTab === 'apply'
+                ? 'border-slate-900 text-slate-900'
+                : 'border-transparent text-slate-400 hover:text-slate-600'
+            }`}
+          >
+            <FileText className="w-4 h-4" />
+            <span>{isEditing ? 'Edit Application Form' : 'New Application Form'}</span>
+          </button>
+        </div>
+      )}
 
       {/* TRACK NOMINATION TAB */}
       {activeTab === 'track' && (
@@ -514,11 +559,107 @@ export default function StudentPortal({
 
       {/* NEW APPLICATION TAB */}
       {activeTab === 'apply' && (
-        <form onSubmit={handleFormSubmit} className="bg-white border border-slate-200 rounded-2xl p-6 shadow-2xs space-y-8 max-w-4xl mx-auto">
-          <div>
-            <h3 className="font-display font-bold text-slate-900 text-lg">{isEditing ? 'Modify Cabinet Nomination' : 'Student Cabinet Nomination Form'}</h3>
-            <p className="text-xs text-slate-500 font-sans mt-0.5">Please provide your student details to register your cabinet candidacy.</p>
-          </div>
+        <div className="max-w-4xl mx-auto">
+          {/* Progress bar and results screen */}
+          {(isSubmitting || submissionStatus !== 'idle') ? (
+            <div className="bg-white border border-slate-200 rounded-2xl p-10 shadow-2xs text-center space-y-6">
+              {isSubmitting && (
+                <div className="space-y-4 max-w-md mx-auto">
+                  <div className="w-16 h-16 bg-amber-50 text-amber-600 rounded-full flex items-center justify-center mx-auto text-xl font-bold">
+                    <Clock className="w-8 h-8 animate-spin" />
+                  </div>
+                  <h3 className="font-display font-bold text-slate-800 text-lg">Submitting nomination form...</h3>
+                  <p className="text-xs text-slate-500">Storing cabinet preferences and verifying student eligibility rules...</p>
+                  
+                  {/* Real visual Progress Bar */}
+                  <div className="w-full bg-slate-100 rounded-full h-3 overflow-hidden shadow-inner mt-2">
+                    <div 
+                      className="bg-amber-500 h-full rounded-full transition-all duration-150"
+                      style={{ width: `${submitProgress}%` }}
+                    ></div>
+                  </div>
+                  <div className="text-xs font-mono font-bold text-slate-600">{submitProgress}% Complete</div>
+                </div>
+              )}
+
+              {!isSubmitting && submissionStatus === 'success' && (
+                <div className="space-y-6 py-6 max-w-md mx-auto">
+                  <div className="w-16 h-16 bg-emerald-50 text-emerald-600 rounded-full flex items-center justify-center mx-auto border border-emerald-250 shadow-sm">
+                    <CheckSquare className="w-8 h-8" />
+                  </div>
+                  <div className="space-y-2">
+                    <h2 className="font-display font-black text-emerald-700 text-3xl tracking-tight">Submitted</h2>
+                    <p className="text-sm font-medium text-slate-600">Your student cabinet nomination has been successfully recorded.</p>
+                  </div>
+
+                  <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4.5 text-left space-y-2.5">
+                    <div className="flex justify-between items-center text-xs">
+                      <span className="text-slate-500 font-medium">Tracking ID / Admn No:</span>
+                      <span className="font-mono font-bold text-slate-900">{trackingId}</span>
+                    </div>
+                    <div className="flex justify-between items-center text-xs">
+                      <span className="text-slate-500 font-medium">Nominated Candidate:</span>
+                      <span className="font-bold text-slate-800">{name}</span>
+                    </div>
+                    <div className="flex justify-between items-center text-xs">
+                      <span className="text-slate-500 font-medium">Primary Preference:</span>
+                      <span className="font-bold text-indigo-700">{posts.find(p => p.id === firstChoicePostId)?.title || firstChoicePostId}</span>
+                    </div>
+                  </div>
+
+                  <div className="pt-4 flex justify-center gap-3">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSubmissionStatus('idle');
+                        // Reset form fields
+                        setName('');
+                        setAdmissionNumber('');
+                        setFirstChoicePostId('');
+                        setSecondChoicePostId('');
+                        setAchievements([]);
+                        setLeadershipExperience('');
+                        setSop('');
+                      }}
+                      className="px-5 py-2.5 bg-slate-900 hover:bg-slate-800 text-white font-sans text-xs font-bold rounded-xl transition shadow-xs"
+                    >
+                      Fill New Form
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {!isSubmitting && submissionStatus === 'failed' && (
+                <div className="space-y-6 py-6 max-w-md mx-auto">
+                  <div className="w-16 h-16 bg-rose-50 text-rose-600 rounded-full flex items-center justify-center mx-auto border border-rose-250 shadow-sm">
+                    <AlertCircle className="w-8 h-8" />
+                  </div>
+                  <div className="space-y-2">
+                    <h2 className="font-display font-black text-rose-700 text-3xl tracking-tight">Not Submitted</h2>
+                    <p className="text-sm font-medium text-slate-600">The application form could not be submitted.</p>
+                    {formError && (
+                      <p className="text-xs text-rose-600 bg-rose-50 border border-rose-100 p-2.5 rounded-lg mt-2 text-center">{formError}</p>
+                    )}
+                  </div>
+
+                  <div className="pt-4">
+                    <button
+                      type="button"
+                      onClick={() => setSubmissionStatus('idle')}
+                      className="px-5 py-2.5 bg-slate-900 hover:bg-slate-800 text-white font-sans text-xs font-bold rounded-xl transition shadow-xs"
+                    >
+                      Back to Form
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          ) : (
+            <form onSubmit={handleFormSubmit} className="bg-white border border-slate-200 rounded-2xl p-6 shadow-2xs space-y-8">
+              <div>
+                <h3 className="font-display font-bold text-slate-900 text-lg">{isEditing ? 'Modify Cabinet Nomination' : 'Student Cabinet Nomination Form'}</h3>
+                <p className="text-xs text-slate-500 font-sans mt-0.5">Please provide your student details to register your cabinet candidacy.</p>
+              </div>
 
           {formError && (
             <div className="p-3.5 bg-rose-50 border border-rose-100 text-rose-700 text-xs rounded-xl font-medium font-sans flex items-center gap-1.5">
@@ -537,17 +678,66 @@ export default function StudentPortal({
           {/* Pre-Registered Student Lookup Box */}
           {!isEditing && (
             <div className="bg-amber-50/40 border border-amber-200/60 p-4.5 rounded-2xl space-y-3">
-              <div className="flex items-start gap-3">
-                <div className="p-2 bg-amber-400 text-slate-950 rounded-xl font-bold flex items-center justify-center text-sm flex-shrink-0 mt-0.5">
-                  <Search className="w-4 h-4" />
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                <div className="flex items-start gap-3">
+                  <div className="p-2 bg-amber-400 text-slate-950 rounded-xl font-bold flex items-center justify-center text-sm flex-shrink-0 mt-0.5">
+                    <Search className="w-4 h-4" />
+                  </div>
+                  <div className="space-y-0.5">
+                    <h4 className="font-display font-bold text-slate-900 text-xs">Pre-registered Student Lookup</h4>
+                    <p className="text-[11px] text-slate-500 font-sans leading-relaxed">
+                      Search and select your pre-registered profile below to automatically populate your credentials!
+                    </p>
+                  </div>
                 </div>
-                <div className="space-y-0.5">
-                  <h4 className="font-display font-bold text-slate-900 text-xs">Pre-registered Student Lookup</h4>
-                  <p className="text-[11px] text-slate-500 font-sans leading-relaxed">
-                    Search and select your pre-registered profile below to automatically populate your Name, Admission Number, Class, Section, and Gender!
-                  </p>
-                </div>
+                
+                <button
+                  type="button"
+                  onClick={() => setShowRegisteredList(!showRegisteredList)}
+                  className="px-3 py-2 bg-amber-200 hover:bg-amber-300 text-amber-950 text-[11px] font-bold rounded-xl transition duration-150 flex items-center gap-1.5 shadow-3xs flex-shrink-0 border border-amber-300/40"
+                >
+                  <Search className="w-3.5 h-3.5" />
+                  <span>Registered Student</span>
+                </button>
               </div>
+
+              {showRegisteredList && (
+                <div className="bg-white border border-amber-200/80 rounded-xl p-3 max-h-56 overflow-y-auto divide-y divide-slate-150 shadow-2xs">
+                  <div className="flex justify-between items-center text-[9px] font-bold text-slate-400 uppercase tracking-wider pb-1.5">
+                    <span>Student Name</span>
+                    <span>Class & Admn No</span>
+                  </div>
+                  {registeredList.map((student, idx) => (
+                    <button
+                      key={student.id || idx}
+                      type="button"
+                      onClick={() => {
+                        setName(student.name);
+                        setAdmissionNumber(student.admissionNumber);
+                        setStudentClass(student.class);
+                        setSection(student.section || 'A');
+                        setRollNumber(student.rollNumber || '1');
+                        if (student.gender) {
+                          setGender(student.gender);
+                        }
+                        setLookupQuery('');
+                        setShowRegisteredList(false);
+                      }}
+                      className="w-full text-left py-2 hover:bg-amber-50/50 rounded-lg px-2 flex justify-between items-center transition text-xs font-sans"
+                    >
+                      <div>
+                        <div className="font-bold text-slate-800">{student.name}</div>
+                        <div className="text-[9px] text-slate-400 font-mono">ID: {student.admissionNumber}</div>
+                      </div>
+                      <div className="text-right">
+                        <span className="text-[10px] bg-amber-50 text-amber-800 font-bold px-2 py-0.5 rounded-md border border-amber-100">
+                          Class {student.class}-{student.section || 'A'}
+                        </span>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
 
               <div className="relative">
                 <input
@@ -720,7 +910,7 @@ export default function StudentPortal({
                   className="w-full px-3.5 py-2 text-xs border border-slate-350 rounded-lg text-slate-800 focus:ring-1 focus:ring-slate-900 focus:border-slate-900 bg-white font-semibold text-slate-800"
                 >
                   <option value="">-- Select Choice 2 Post --</option>
-                  {eligiblePosts.map(p => (
+                  {eligiblePosts.filter(p => p.id !== firstChoicePostId).map(p => (
                     <option key={p.id} value={p.id}>{p.title}</option>
                   ))}
                 </select>
@@ -759,6 +949,8 @@ export default function StudentPortal({
             </button>
           </div>
         </form>
+      )}
+        </div>
       )}
     </div>
   );

@@ -461,7 +461,8 @@ export default function App() {
     <div className="min-h-screen bg-slate-50 flex" style={{ fontFamily: '"Inter", sans-serif' }}>
       
       {/* 1. Sleek Left Sidebar Navigation */}
-      <aside className="w-64 bg-slate-950 text-slate-400 flex flex-col flex-shrink-0 border-r border-slate-900 hidden md:flex">
+      {role !== 'student' && (
+        <aside className="w-64 bg-slate-950 text-slate-400 flex flex-col flex-shrink-0 border-r border-slate-900 hidden md:flex">
         
         {/* Branding Head in Sidebar */}
         <div className="p-6 border-b border-slate-900">
@@ -550,6 +551,7 @@ export default function App() {
         </div>
 
       </aside>
+      )}
 
       {/* 2. Main Content Frame */}
       <div className="flex-1 flex flex-col min-h-screen min-w-0">
@@ -568,53 +570,55 @@ export default function App() {
         />
 
         {/* Mobile quick-nav list */}
-        <div className="md:hidden flex gap-1 border-b border-slate-200 bg-white p-2 text-slate-400 font-sans font-bold text-[10px] uppercase overflow-x-auto">
-          <button
-            onClick={() => setActiveTab('home')}
-            className={`px-3 py-1.5 rounded-lg transition-all flex items-center gap-1 flex-shrink-0 ${
-              activeTab === 'home' ? 'bg-slate-900 text-white shadow-xs' : 'hover:text-slate-700'
-            }`}
-          >
-            <LayoutDashboard className="w-3.5 h-3.5" />
-            <span>Overview</span>
-          </button>
-          <button
-            onClick={() => setActiveTab('apply')}
-            className={`px-3 py-1.5 rounded-lg transition-all flex items-center gap-1 flex-shrink-0 ${
-              activeTab === 'apply' ? 'bg-slate-900 text-white shadow-xs' : 'hover:text-slate-700'
-            }`}
-          >
-            <Users className="w-3.5 h-3.5" />
-            <span>Enrolment</span>
-          </button>
-          <button
-            onClick={() => setActiveTab('panel')}
-            className={`px-3 py-1.5 rounded-lg transition-all flex items-center gap-1 flex-shrink-0 ${
-              activeTab === 'panel' ? 'bg-slate-900 text-white shadow-xs' : 'hover:text-slate-700'
-            }`}
-          >
-            <Award className="w-3.5 h-3.5" />
-            <span>Interview</span>
-          </button>
-          <button
-            onClick={() => setActiveTab('admin')}
-            className={`px-3 py-1.5 rounded-lg transition-all flex items-center gap-1 flex-shrink-0 ${
-              activeTab === 'admin' ? 'bg-slate-900 text-white shadow-xs' : 'hover:text-slate-700'
-            }`}
-          >
-            <Settings className="w-3.5 h-3.5" />
-            <span>Admin</span>
-          </button>
-          <button
-            onClick={() => setActiveTab('analytics')}
-            className={`px-3 py-1.5 rounded-lg transition-all flex items-center gap-1 flex-shrink-0 ${
-              activeTab === 'analytics' ? 'bg-slate-900 text-white shadow-xs' : 'hover:text-slate-700'
-            }`}
-          >
-            <BarChart3 className="w-3.5 h-3.5" />
-            <span>Analytics</span>
-          </button>
-        </div>
+        {role !== 'student' && (
+          <div className="md:hidden flex gap-1 border-b border-slate-200 bg-white p-2 text-slate-400 font-sans font-bold text-[10px] uppercase overflow-x-auto">
+            <button
+              onClick={() => setActiveTab('home')}
+              className={`px-3 py-1.5 rounded-lg transition-all flex items-center gap-1 flex-shrink-0 ${
+                activeTab === 'home' ? 'bg-slate-900 text-white shadow-xs' : 'hover:text-slate-700'
+              }`}
+            >
+              <LayoutDashboard className="w-3.5 h-3.5" />
+              <span>Overview</span>
+            </button>
+            <button
+              onClick={() => setActiveTab('apply')}
+              className={`px-3 py-1.5 rounded-lg transition-all flex items-center gap-1 flex-shrink-0 ${
+                activeTab === 'apply' ? 'bg-slate-900 text-white shadow-xs' : 'hover:text-slate-700'
+              }`}
+            >
+              <Users className="w-3.5 h-3.5" />
+              <span>Enrolment</span>
+            </button>
+            <button
+              onClick={() => setActiveTab('panel')}
+              className={`px-3 py-1.5 rounded-lg transition-all flex items-center gap-1 flex-shrink-0 ${
+                activeTab === 'panel' ? 'bg-slate-900 text-white shadow-xs' : 'hover:text-slate-700'
+              }`}
+            >
+              <Award className="w-3.5 h-3.5" />
+              <span>Interview</span>
+            </button>
+            <button
+              onClick={() => setActiveTab('admin')}
+              className={`px-3 py-1.5 rounded-lg transition-all flex items-center gap-1 flex-shrink-0 ${
+                activeTab === 'admin' ? 'bg-slate-900 text-white shadow-xs' : 'hover:text-slate-700'
+              }`}
+            >
+              <Settings className="w-3.5 h-3.5" />
+              <span>Admin</span>
+            </button>
+            <button
+              onClick={() => setActiveTab('analytics')}
+              className={`px-3 py-1.5 rounded-lg transition-all flex items-center gap-1 flex-shrink-0 ${
+                activeTab === 'analytics' ? 'bg-slate-900 text-white shadow-xs' : 'hover:text-slate-700'
+              }`}
+            >
+              <BarChart3 className="w-3.5 h-3.5" />
+              <span>Analytics</span>
+            </button>
+          </div>
+        )}
 
         {/* Main Section */}
         <main className="flex-grow p-6 md:p-8 max-w-7xl w-full mx-auto space-y-8 overflow-y-auto">
@@ -633,7 +637,75 @@ export default function App() {
             {activeTab === 'home' && (
               <div className="space-y-6">
                 
-                {/* Statistics Grid */}
+                {/* Mobile View: ONLY student login, admin login, and teacher login */}
+                <div className="block md:hidden space-y-6">
+                  {/* Custom Mobile Header Card with Logo */}
+                  <div className="bg-slate-950 text-white rounded-2xl p-6 border border-slate-900 text-center space-y-4 shadow-md">
+                    {/* Dynamic School Logo inside standard container */}
+                    <div className="w-20 h-20 bg-white/5 rounded-2xl p-2.5 mx-auto border border-white/10 flex items-center justify-center shadow-inner">
+                      <div dangerouslySetInnerHTML={{ __html: activeBranding.logo }} className="text-white" />
+                    </div>
+                    <div className="space-y-1">
+                      <h2 className="text-lg font-display font-bold tracking-tight">{activeBranding.name}</h2>
+                      <p className="text-[11px] text-slate-400 font-sans leading-relaxed">{activeBranding.tagline}</p>
+                    </div>
+                  </div>
+
+                  {/* Three beautiful Portal Login buttons */}
+                  <div className="space-y-3.5">
+                    <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest text-center">School Portal Access Gateway</h3>
+                    
+                    {/* Student Login Card */}
+                    <button
+                      onClick={() => handleRoleChange('student')}
+                      className="w-full bg-white border border-slate-200 rounded-2xl p-4 text-left flex items-center gap-4 hover:border-slate-300 transition shadow-xs active:bg-slate-50"
+                    >
+                      <div className="p-3 bg-amber-50 text-amber-600 rounded-xl">
+                        <Users className="w-5 h-5" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h4 className="font-display font-bold text-slate-900 text-sm">Student Login</h4>
+                        <p className="text-[10px] text-slate-500 font-medium">Nominate yourself and select cabinet preferences</p>
+                      </div>
+                      <ChevronRight className="w-4 h-4 text-slate-400 flex-shrink-0" />
+                    </button>
+
+                    {/* Teacher Login Card */}
+                    <button
+                      onClick={() => handleRoleChange('panel')}
+                      className="w-full bg-white border border-slate-200 rounded-2xl p-4 text-left flex items-center gap-4 hover:border-slate-300 transition shadow-xs active:bg-slate-50"
+                    >
+                      <div className="p-3 bg-blue-50 text-blue-600 rounded-xl">
+                        <Award className="w-5 h-5" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h4 className="font-display font-bold text-slate-900 text-sm">Teacher Login</h4>
+                        <p className="text-[10px] text-slate-500 font-medium">Evaluation, assessment panel & interview scorecard</p>
+                      </div>
+                      <ChevronRight className="w-4 h-4 text-slate-400 flex-shrink-0" />
+                    </button>
+
+                    {/* Admin Login Card */}
+                    <button
+                      onClick={() => handleRoleChange('admin')}
+                      className="w-full bg-white border border-slate-200 rounded-2xl p-4 text-left flex items-center gap-4 hover:border-slate-300 transition shadow-xs active:bg-slate-50"
+                    >
+                      <div className="p-3 bg-slate-100 text-slate-700 rounded-xl">
+                        <Settings className="w-5 h-5" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h4 className="font-display font-bold text-slate-900 text-sm">Admin Login</h4>
+                        <p className="text-[10px] text-slate-500 font-medium">Configure roles, post eligibility rules & deadlines</p>
+                      </div>
+                      <ChevronRight className="w-4 h-4 text-slate-400 flex-shrink-0" />
+                    </button>
+                  </div>
+                </div>
+
+                {/* Desktop View: Full Dashboard (Hidden on Mobile) */}
+                <div className="hidden md:block space-y-6">
+                  
+                  {/* Statistics Grid */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                   <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs">
                     <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider mb-1">Total Applications</p>
@@ -848,6 +920,7 @@ export default function App() {
 
                 </div>
 
+              </div>
               </div>
             )}
 
