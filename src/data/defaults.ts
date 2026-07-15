@@ -8,7 +8,7 @@ export const DEFAULT_CONFIG: SystemConfig = {
     primaryColor: "#0b3c8c", // Royal Blue
     secondaryColor: "#ffffff", // White
     academicSession: "2026-2027",
-    studentPassword: "student23",
+    studentPassword: "FLOW",
     teacherPassword: "teacher123",
     adminPassword: "admin123"
   },

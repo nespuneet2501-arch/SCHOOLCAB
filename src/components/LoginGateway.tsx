@@ -27,7 +27,7 @@ export default function LoginGateway({ branding, onLoginSuccess }: LoginGatewayP
     // Defaults from branding configurations if specified
     if (roleType === 'admin') return branding.adminPassword || 'admin123';
     if (roleType === 'panel') return branding.teacherPassword || 'teacher123';
-    return branding.studentPassword || 'student23';
+    return branding.studentPassword || 'FLOW';
   };
 
   // Check if a password is a default one
@@ -36,15 +36,15 @@ export default function LoginGateway({ branding, onLoginSuccess }: LoginGatewayP
       ? (branding.adminPassword || 'admin123')
       : roleType === 'panel'
         ? (branding.teacherPassword || 'teacher123')
-        : (branding.studentPassword || 'student23');
+        : (branding.studentPassword || 'FLOW');
     
     const hardcodedDefault = roleType === 'admin' 
       ? 'admin123' 
       : roleType === 'panel' 
         ? 'teacher123' 
-        : 'student23';
+        : 'FLOW';
 
-    return pass === defaultPass || pass === hardcodedDefault || (roleType === 'student' && pass === 'student');
+    return pass === defaultPass || pass === hardcodedDefault || (roleType === 'student' && (pass === 'student' || pass === 'student23'));
   };
 
   const handleLoginSubmit = (e: React.FormEvent) => {

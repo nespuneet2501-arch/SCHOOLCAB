@@ -286,7 +286,7 @@ export default function AdminPanel({
   const [secondaryColor, setSecondaryColor] = useState(config.branding.secondaryColor);
   const [sessionName, setSessionName] = useState(config.branding.academicSession);
   const [deadline, setDeadline] = useState(config.applicationDeadline);
-  const [studentPassword, setStudentPassword] = useState(config.branding.studentPassword || 'student23');
+  const [studentPassword, setStudentPassword] = useState(config.branding.studentPassword || 'FLOW');
   const [teacherPassword, setTeacherPassword] = useState(config.branding.teacherPassword || 'teacher123');
   const [adminPassword, setAdminPassword] = useState(config.branding.adminPassword || 'admin123');
 
