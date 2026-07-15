@@ -10,7 +10,7 @@ import CandidateProfileView from './components/CandidateProfileView';
 import { LayoutDashboard, Award, Settings, BarChart3, Users, Clock, Mail, ChevronRight, Eye, ShieldAlert } from 'lucide-react';
 import { auth, db, googleProvider, signInWithPopup, signOut } from './firebase';
 import { onAuthStateChanged, User } from 'firebase/auth';
-import { doc, setDoc, getDoc } from 'firebase/firestore';
+import { doc, setDoc, getDoc, onSnapshot, collection } from 'firebase/firestore';
 import {
   checkAndSeedDatabase,
   fetchSystemConfig,
@@ -145,6 +145,51 @@ export default function App() {
     loadAllData();
   }, []);
 
+  // Real-time Firestore synchronizer for seamless multi-device updates
+  useEffect(() => {
+    if (!db) return;
+
+    // 1. Synchronize Applications collection in real-time
+    const unsubscribeApps = onSnapshot(collection(db, "applications"), (snapshot) => {
+      const appsList: StudentApplication[] = [];
+      snapshot.forEach((doc) => {
+        appsList.push(doc.data() as StudentApplication);
+      });
+      // Sort application IDs consistently
+      appsList.sort((a, b) => a.id.localeCompare(b.id));
+      setApplications(appsList);
+    }, (error) => {
+      console.error("Firestore real-time applications synchronization error:", error);
+    });
+
+    // 2. Synchronize current_config in system_config in real-time
+    const unsubscribeConfig = onSnapshot(doc(db, "system_config", "current_config"), (docSnap) => {
+      if (docSnap.exists()) {
+        setConfig(docSnap.data() as SystemConfig);
+      }
+    }, (error) => {
+      console.error("Firestore real-time config synchronization error:", error);
+    });
+
+    // 3. Synchronize Email Logs in real-time
+    const unsubscribeEmailLogs = onSnapshot(collection(db, "email_logs"), (snapshot) => {
+      const logsList: EmailLog[] = [];
+      snapshot.forEach((doc) => {
+        logsList.push(doc.data() as EmailLog);
+      });
+      logsList.sort((a, b) => b.sentAt.localeCompare(a.sentAt));
+      setEmailLogs(logsList);
+    }, (error) => {
+      console.error("Firestore real-time email logs synchronization error:", error);
+    });
+
+    return () => {
+      unsubscribeApps();
+      unsubscribeConfig();
+      unsubscribeEmailLogs();
+    };
+  }, []);
+
   // Update App Roles
   const handleRoleChange = (newRole: 'student' | 'panel' | 'admin') => {
     setRole(newRole);
@@ -245,7 +290,7 @@ export default function App() {
   const handleUpdateApplication = async (id: string, updates: Partial<StudentApplication>) => {
     try {
       if (dbMode === 'server') {
-        const res = await fetch(`/api/applications/${id}`, {
+        const res = await fetch(getBackendUrl() + `/api/applications/${id}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(updates)
