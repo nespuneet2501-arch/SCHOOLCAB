@@ -8,6 +8,8 @@ import AnalyticsDashboard from './components/AnalyticsDashboard';
 import ReportsPanel from './components/ReportsPanel';
 import CandidateProfileView from './components/CandidateProfileView';
 import { LayoutDashboard, Award, Settings, BarChart3, Users, Clock, Mail, ChevronRight, Eye, ShieldAlert } from 'lucide-react';
+import LoginGateway from './components/LoginGateway';
+import AccessibilitySettings, { THEME_PRESETS, ColorTheme } from './components/AccessibilitySettings';
 import { auth, db, googleProvider, signInWithPopup, signOut } from './firebase';
 import { onAuthStateChanged, User } from 'firebase/auth';
 import { doc, setDoc, getDoc, onSnapshot, collection } from 'firebase/firestore';
@@ -22,9 +24,53 @@ import {
 } from './services/dbService';
 
 export default function App() {
-  const [role, setRole] = useState<'student' | 'panel' | 'admin'>('student');
-  const [activeTab, setActiveTab] = useState<'home' | 'apply' | 'panel' | 'admin' | 'analytics'>('home');
+  const [isLoggedIn, setIsLoggedIn] = useState(() => {
+    return localStorage.getItem('cabinet_is_logged_in') === 'true';
+  });
+
+  const [role, setRole] = useState<'student' | 'panel' | 'admin'>(() => {
+    return (localStorage.getItem('cabinet_logged_in_user') as any) || 'student';
+  });
+
+  const [activeTab, setActiveTab] = useState<'home' | 'apply' | 'panel' | 'admin' | 'analytics'>(() => {
+    const loggedIn = localStorage.getItem('cabinet_is_logged_in') === 'true';
+    const userRole = localStorage.getItem('cabinet_logged_in_user');
+    if (loggedIn) {
+      if (userRole === 'student') return 'apply';
+      if (userRole === 'panel') return 'panel';
+      if (userRole === 'admin') return 'admin';
+    }
+    return 'home';
+  });
+
   const [analyticsSubTab, setAnalyticsSubTab] = useState<'visual' | 'reports'>('reports');
+
+  // Font Scaling Accessibility State
+  const [fontScale, setFontScale] = useState(() => {
+    return Number(localStorage.getItem('app_font_scale')) || 100;
+  });
+
+  // Color Theme State
+  const [activeTheme, setActiveTheme] = useState<ColorTheme>(() => {
+    const savedName = localStorage.getItem('app_active_theme_name');
+    return THEME_PRESETS.find(t => t.name === savedName) || THEME_PRESETS[0];
+  });
+
+  useEffect(() => {
+    document.documentElement.style.fontSize = `${fontScale}%`;
+    localStorage.setItem('app_font_scale', String(fontScale));
+  }, [fontScale]);
+
+  useEffect(() => {
+    localStorage.setItem('app_active_theme_name', activeTheme.name);
+  }, [activeTheme]);
+
+  // Enforce that only nomination form is visible to student role
+  useEffect(() => {
+    if (isLoggedIn && role === 'student') {
+      setActiveTab('apply');
+    }
+  }, [role, isLoggedIn]);
 
   // Firebase auth & Firestore states
   const [currentUser, setCurrentUser] = useState<User | null>(null);
@@ -93,15 +139,50 @@ export default function App() {
     }
   };
 
+  const handleLoginSuccess = (newRole: 'student' | 'panel' | 'admin') => {
+    setIsLoggedIn(true);
+    setRole(newRole);
+    if (newRole === 'student') {
+      setActiveTab('apply');
+    } else if (newRole === 'panel') {
+      setActiveTab('panel');
+    } else if (newRole === 'admin') {
+      setActiveTab('admin');
+    }
+  };
+
+  const handleCustomSignOut = () => {
+    localStorage.removeItem('cabinet_is_logged_in');
+    localStorage.removeItem('cabinet_logged_in_user');
+    setIsLoggedIn(false);
+    setRole('student');
+    setActiveTab('home');
+  };
+
   // Fetch initial data
   const loadAllData = async () => {
     setIsLoading(true);
     setNetworkError('');
+    
+    // Fast Fetch Timeout Helper
+    const fetchWithTimeout = async (url: string, timeoutMs = 400) => {
+      const controller = new AbortController();
+      const id = setTimeout(() => controller.abort(), timeoutMs);
+      try {
+        const response = await fetch(url, { signal: controller.signal });
+        clearTimeout(id);
+        return response;
+      } catch (e) {
+        clearTimeout(id);
+        throw e;
+      }
+    };
+
     try {
       const [configRes, appsRes, logsRes] = await Promise.all([
-        fetch(getBackendUrl() + '/api/config'),
-        fetch(getBackendUrl() + '/api/applications'),
-        fetch(getBackendUrl() + '/api/email-logs')
+        fetchWithTimeout(getBackendUrl() + '/api/config'),
+        fetchWithTimeout(getBackendUrl() + '/api/applications'),
+        fetchWithTimeout(getBackendUrl() + '/api/email-logs')
       ]);
 
       if (!configRes.ok || !appsRes.ok || !logsRes.ok) {
@@ -117,7 +198,7 @@ export default function App() {
       setEmailLogs(logsData);
       setDbMode('server');
     } catch (err: any) {
-      console.warn("Express server API offline. Connecting directly to Google Cloud Firestore database...", err);
+      console.warn("Express server API offline or slow. Connecting directly to Google Cloud Firestore database...", err);
       try {
         setDbMode('firestore');
         // Ensure database is seeded on first startup
@@ -448,7 +529,7 @@ export default function App() {
     );
   }
 
-  const activeBranding = config?.branding || {
+  const baseBranding = config?.branding || {
     name: 'GD Goenka Public School',
     tagline: 'Higher Stronger Brighter • School Leadership Cabinet',
     logo: '',
@@ -457,18 +538,49 @@ export default function App() {
     academicSession: '2026-2027'
   };
 
+  const activeBranding = {
+    ...baseBranding,
+    primaryColor: activeTheme.primary,
+    secondaryColor: activeTheme.secondary
+  };
+
+  if (!isLoggedIn) {
+    return (
+      <>
+        <LoginGateway
+          branding={activeBranding}
+          onLoginSuccess={handleLoginSuccess}
+        />
+        <AccessibilitySettings
+          onThemeChange={setActiveTheme}
+          onFontScaleChange={setFontScale}
+          currentThemeName={activeTheme.name}
+          currentFontScale={fontScale}
+        />
+      </>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-slate-50 flex" style={{ fontFamily: '"Inter", sans-serif' }}>
       
       {/* 1. Sleek Left Sidebar Navigation */}
       {role !== 'student' && (
-        <aside className="w-64 bg-slate-950 text-slate-400 flex flex-col flex-shrink-0 border-r border-slate-900 hidden md:flex">
+        <aside className={`w-64 ${activeTheme.sidebarBg} text-slate-400 flex flex-col flex-shrink-0 border-r border-slate-900 hidden md:flex`}>
         
         {/* Branding Head in Sidebar */}
         <div className="p-6 border-b border-slate-900">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-amber-400 text-slate-950 rounded-xl flex items-center justify-center font-black text-sm shadow-sm flex-shrink-0">
-              {activeBranding.name.charAt(0)}
+            <div className="w-9 h-9 bg-white rounded-xl p-1 flex items-center justify-center border border-white/10 shadow-sm flex-shrink-0 overflow-hidden">
+              {activeBranding.logo ? (
+                activeBranding.logo.trim().startsWith('<svg') ? (
+                  <div dangerouslySetInnerHTML={{ __html: activeBranding.logo }} className="w-full h-full text-slate-700 flex items-center justify-center" />
+                ) : (
+                  <img src={activeBranding.logo} alt="School Logo" className="w-full h-full object-contain" />
+                )
+              ) : (
+                <span className="text-xs font-black text-slate-700">GDG</span>
+              )}
             </div>
             <div className="min-w-0">
               <h1 className="text-sm font-bold tracking-tight text-white leading-tight truncate">
@@ -561,12 +673,9 @@ export default function App() {
           branding={activeBranding}
           deadline={config?.applicationDeadline || '2026-08-31'}
           currentRole={role}
-          onChangeRole={handleRoleChange}
+          onSignOut={handleCustomSignOut}
           onResetDemo={handleResetDemo}
           isResetting={isResetting}
-          user={currentUser}
-          onSignIn={handleSignIn}
-          onSignOut={handleSignOut}
         />
 
         {/* Mobile quick-nav list */}
@@ -642,8 +751,16 @@ export default function App() {
                   {/* Custom Mobile Header Card with Logo */}
                   <div className="bg-slate-950 text-white rounded-2xl p-6 border border-slate-900 text-center space-y-4 shadow-md">
                     {/* Dynamic School Logo inside standard container */}
-                    <div className="w-20 h-20 bg-white/5 rounded-2xl p-2.5 mx-auto border border-white/10 flex items-center justify-center shadow-inner">
-                      <div dangerouslySetInnerHTML={{ __html: activeBranding.logo }} className="text-white" />
+                    <div className="w-20 h-20 bg-white rounded-2xl p-2 mx-auto border border-white/10 flex items-center justify-center shadow-inner overflow-hidden">
+                      {activeBranding.logo ? (
+                        activeBranding.logo.trim().startsWith('<svg') ? (
+                          <div dangerouslySetInnerHTML={{ __html: activeBranding.logo }} className="w-full h-full text-slate-700 flex items-center justify-center text-center" />
+                        ) : (
+                          <img src={activeBranding.logo} alt="School Logo" className="w-full h-full object-contain" />
+                        )
+                      ) : (
+                        <span className="text-xl font-black text-slate-700">GDG</span>
+                      )}
                     </div>
                     <div className="space-y-1">
                       <h2 className="text-lg font-display font-bold tracking-tight">{activeBranding.name}</h2>
@@ -1005,6 +1122,9 @@ export default function App() {
             <div>
               © {new Date().getFullYear()} {activeBranding.name} Cabinet Selection Desk.
             </div>
+            <div className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider">
+              developed by GDG AGRA
+            </div>
             <div className="flex items-center gap-1">
               <span>Powered by</span>
               <strong className="text-slate-900 font-bold">Google AI Studio & Gemini Flash</strong>
@@ -1027,6 +1147,14 @@ export default function App() {
           </div>
         </div>
       )}
+
+      {/* ACCESSIBILITY FLOAT CUSTOMIZER */}
+      <AccessibilitySettings
+        onThemeChange={setActiveTheme}
+        onFontScaleChange={setFontScale}
+        currentThemeName={activeTheme.name}
+        currentFontScale={fontScale}
+      />
 
     </div>
   );

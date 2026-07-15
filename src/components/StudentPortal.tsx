@@ -218,6 +218,14 @@ export default function StudentPortal({
       return setFormError(`If you have chosen the ${postTitle} position for nomination, you cannot select the ${postTitle} as a second choice.`);
     }
 
+    const firstPost = posts.find(p => p.id === firstChoicePostId);
+    const secondPost = posts.find(p => p.id === secondChoicePostId);
+    if (firstPost && secondPost) {
+      if (firstPost.title.toLowerCase().includes('head boy') && secondPost.title.toLowerCase().includes('head boy')) {
+        return setFormError('If you have chosen the Head Boy position for nomination, you cannot select the Head Boy as a second choice.');
+      }
+    }
+
     const calculatedAdmNum = admissionNumber ? admissionNumber.trim() : 'GDG-2026-' + Math.floor(1000 + Math.random() * 9000);
     const calculatedAdmDate = (2026 - Math.max(1, studentClass)) + "-04-10";
 

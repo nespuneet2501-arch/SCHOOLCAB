@@ -1,33 +1,36 @@
 import React from 'react';
 import { SchoolBranding } from '../types';
-import { Shield, Users, Award, RefreshCw, Calendar } from 'lucide-react';
-import { User } from 'firebase/auth';
+import { Shield, Users, Award, RefreshCw, Calendar, LogOut } from 'lucide-react';
 
 interface BrandingHeaderProps {
   branding: SchoolBranding;
   deadline: string;
   currentRole: 'student' | 'panel' | 'admin';
-  onChangeRole: (role: 'student' | 'panel' | 'admin') => void;
+  onSignOut: () => void;
   onResetDemo: () => void;
   isResetting: boolean;
-  user: User | null;
-  onSignIn: () => void;
-  onSignOut: () => void;
 }
 
 export default function BrandingHeader({
   branding,
   deadline,
   currentRole,
-  onChangeRole,
+  onSignOut,
   onResetDemo,
-  isResetting,
-  user,
-  onSignIn,
-  onSignOut
+  isResetting
 }: BrandingHeaderProps) {
   const deadlineDate = new Date(deadline);
   const isDeadlinePassed = new Date() > deadlineDate;
+
+  // Active Role badge configuration
+  const roleMeta = {
+    student: { label: 'Student Portal', icon: Users, color: 'bg-amber-400 text-slate-950 border-amber-300' },
+    panel: { label: 'Teacher Panel', icon: Award, color: 'bg-blue-600 text-white border-blue-500' },
+    admin: { label: 'Admin Console', icon: Shield, color: 'bg-slate-900 text-white border-slate-800' }
+  };
+
+  const activeMeta = roleMeta[currentRole] || roleMeta.student;
+  const RoleIcon = activeMeta.icon;
 
   return (
     <header className="h-16 md:h-20 bg-white border-b border-slate-200 flex items-center justify-between px-6 md:px-8 shadow-xs flex-shrink-0" id="branding-header">
@@ -44,45 +47,6 @@ export default function BrandingHeader({
       {/* Right Segment: Switchers, Deadlines & Actions */}
       <div className="flex items-center gap-3 md:gap-4">
         
-        {/* Role Switcher (Segmented Control) */}
-        <div className="hidden xl:flex items-center gap-1 bg-slate-100 p-1 rounded-xl border border-slate-200/60 text-xs font-semibold">
-          <button
-            onClick={() => onChangeRole('student')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all ${
-              currentRole === 'student'
-                ? 'bg-white text-slate-900 shadow-sm border border-slate-200/50 font-bold'
-                : 'text-slate-500 hover:text-slate-800'
-            }`}
-          >
-            <Users className="w-3.5 h-3.5 text-slate-400" />
-            <span>Student Desk</span>
-          </button>
-          
-          <button
-            onClick={() => onChangeRole('panel')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all ${
-              currentRole === 'panel'
-                ? 'bg-white text-slate-900 shadow-sm border border-slate-200/50 font-bold'
-                : 'text-slate-500 hover:text-slate-800'
-            }`}
-          >
-            <Award className="w-3.5 h-3.5 text-slate-400" />
-            <span>Interview Board</span>
-          </button>
-          
-          <button
-            onClick={() => onChangeRole('admin')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all ${
-              currentRole === 'admin'
-                ? 'bg-white text-slate-900 shadow-sm border border-slate-200/50 font-bold'
-                : 'text-slate-500 hover:text-slate-800'
-            }`}
-          >
-            <Shield className="w-3.5 h-3.5 text-slate-400" />
-            <span>Admin Control</span>
-          </button>
-        </div>
-
         {/* Dynamic Deadline Badge */}
         <div className="hidden sm:flex items-center gap-2 bg-slate-50 border border-slate-200 px-3 py-1.5 rounded-xl text-xs font-medium">
           <Calendar className="w-3.5 h-3.5 text-slate-400" />
@@ -101,41 +65,21 @@ export default function BrandingHeader({
           )}
         </div>
 
-        {/* Google Authentication Profile / Button */}
-        {user ? (
-          <div className="flex items-center gap-2.5 bg-slate-100 border border-slate-200/80 px-3 py-1 rounded-xl shadow-xs">
-            <img
-              src={user.photoURL || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=80&auto=format&fit=crop&q=60'}
-              alt={user.displayName || 'User'}
-              className="w-7 h-7 rounded-full border border-slate-300"
-              referrerPolicy="no-referrer"
-            />
-            <div className="hidden lg:block text-left max-w-[120px]">
-              <p className="text-[10px] font-bold text-slate-800 leading-tight truncate">
-                {user.displayName}
-              </p>
-              <p className="text-[8px] text-slate-500 font-mono leading-none truncate">
-                {user.email}
-              </p>
-            </div>
-            <button
-              onClick={onSignOut}
-              className="text-[10px] font-bold text-rose-600 hover:text-rose-700 px-2 py-1 hover:bg-rose-50 rounded-lg transition"
-            >
-              Sign Out
-            </button>
-          </div>
-        ) : (
-          <button
-            onClick={onSignIn}
-            className="flex items-center gap-2 px-3.5 py-1.5 text-xs font-bold rounded-xl bg-slate-900 hover:bg-slate-800 text-white shadow-xs transition"
-          >
-            <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24">
-              <path d="M12.24 10.285V14.4h6.887c-.648 2.41-2.519 4.114-5.136 4.114A5.514 5.514 0 0 1 8.5 13a5.514 5.514 0 0 1 5.491-5.514c1.474 0 2.805.556 3.822 1.464l3.125-3.125C18.98 3.856 16.638 3 13.991 3 8.473 3 4 7.473 4 13s4.473 10 9.991 10c5.753 0 10.009-4.04 10.009-10 0-.675-.06-1.32-.172-1.954l-11.588.239z" />
-            </svg>
-            <span>Sign In</span>
-          </button>
-        )}
+        {/* Current Logged-In User Badge */}
+        <div className={`flex items-center gap-2 px-3 py-1.5 border rounded-xl text-xs font-bold shadow-xs ${activeMeta.color}`}>
+          <RoleIcon className="w-3.5 h-3.5 flex-shrink-0" />
+          <span className="capitalize">{activeMeta.label}</span>
+        </div>
+
+        {/* Custom Logout Button */}
+        <button
+          onClick={onSignOut}
+          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-xl border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-700 transition shadow-xs"
+          title="Log out of active session"
+        >
+          <LogOut className="w-3.5 h-3.5" />
+          <span className="hidden sm:inline">Logout</span>
+        </button>
 
         {/* Demo reset button */}
         {currentRole !== 'student' && (
@@ -153,4 +97,3 @@ export default function BrandingHeader({
     </header>
   );
 }
-

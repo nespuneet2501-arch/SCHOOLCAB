@@ -3,6 +3,30 @@ import { doc, getDoc, setDoc, getDocs, collection, updateDoc, writeBatch } from 
 import { SystemConfig, StudentApplication, RegisteredStudent, EmailLog, SupabaseConfig } from "../types";
 import { DEFAULT_CONFIG, DEFAULT_REGISTERED_STUDENTS, generateDefaultApplications } from "../data/defaults";
 
+// Helper to recursively remove undefined fields for Firestore compatibility
+export function sanitizeForFirestore(obj: any): any {
+  if (obj === null || obj === undefined) {
+    return null;
+  }
+  if (Array.isArray(obj)) {
+    return obj.map(item => sanitizeForFirestore(item));
+  }
+  if (typeof obj === "object") {
+    if (obj instanceof Date) {
+      return obj.toISOString();
+    }
+    const cleanObj: any = {};
+    for (const key of Object.keys(obj)) {
+      const val = obj[key];
+      if (val !== undefined) {
+        cleanObj[key] = sanitizeForFirestore(val);
+      }
+    }
+    return cleanObj;
+  }
+  return obj;
+}
+
 // Cache data locally in case of offline fallback
 let cachedConfig: SystemConfig | null = null;
 let cachedApplications: StudentApplication[] = [];
@@ -17,13 +41,13 @@ export async function checkAndSeedDatabase() {
     
     if (!configSnap.exists()) {
       console.log("Seeding Firestore with default configurations...");
-      await setDoc(configDocRef, DEFAULT_CONFIG);
+      await setDoc(configDocRef, sanitizeForFirestore(DEFAULT_CONFIG));
       
       // Seed registered students
       const batch = writeBatch(db);
       DEFAULT_REGISTERED_STUDENTS.forEach((student) => {
         const docRef = doc(db, "registered_students", student.id);
-        batch.set(docRef, student);
+        batch.set(docRef, sanitizeForFirestore(student));
       });
       await batch.commit();
 
@@ -32,7 +56,7 @@ export async function checkAndSeedDatabase() {
       const apps = generateDefaultApplications();
       apps.forEach((app) => {
         const docRef = doc(db, "applications", app.id);
-        appsBatch.set(docRef, app);
+        appsBatch.set(docRef, sanitizeForFirestore(app));
       });
       await appsBatch.commit();
       
@@ -63,7 +87,7 @@ export async function saveSystemConfig(config: SystemConfig): Promise<void> {
   cachedConfig = config;
   try {
     const docRef = doc(db, "system_config", "current_config");
-    await setDoc(docRef, config);
+    await setDoc(docRef, sanitizeForFirestore(config));
   } catch (err) {
     console.error("Failed to save system config to Firestore:", err);
     throw err;
@@ -100,7 +124,7 @@ export async function saveApplication(app: StudentApplication): Promise<void> {
   
   try {
     const docRef = doc(db, "applications", app.id);
-    await setDoc(docRef, app);
+    await setDoc(docRef, sanitizeForFirestore(app));
   } catch (err) {
     console.error("Failed to save application to Firestore:", err);
     throw err;
@@ -110,7 +134,7 @@ export async function saveApplication(app: StudentApplication): Promise<void> {
 export async function updateApplicationDoc(id: string, updates: Partial<StudentApplication>): Promise<void> {
   try {
     const docRef = doc(db, "applications", id);
-    await updateDoc(docRef, updates);
+    await updateDoc(docRef, sanitizeForFirestore(updates));
   } catch (err) {
     console.error("Failed to update application in Firestore:", err);
     throw err;
@@ -138,7 +162,7 @@ export async function fetchRegisteredStudents(): Promise<RegisteredStudent[]> {
 export async function saveRegisteredStudent(student: RegisteredStudent): Promise<void> {
   try {
     const docRef = doc(db, "registered_students", student.id);
-    await setDoc(docRef, student);
+    await setDoc(docRef, sanitizeForFirestore(student));
   } catch (err) {
     console.error("Failed to save registered student to Firestore:", err);
     throw err;
@@ -167,7 +191,7 @@ export async function saveEmailLog(log: EmailLog): Promise<void> {
   cachedEmailLogs.unshift(log);
   try {
     const docRef = doc(db, "email_logs", log.id);
-    await setDoc(docRef, log);
+    await setDoc(docRef, sanitizeForFirestore(log));
   } catch (err) {
     console.error("Failed to save email log to Firestore:", err);
     throw err;
@@ -190,7 +214,7 @@ export async function fetchSupabaseConfig(): Promise<SupabaseConfig | null> {
 export async function saveSupabaseConfig(config: SupabaseConfig): Promise<void> {
   try {
     const docRef = doc(db, "system_config", "supabase_config");
-    await setDoc(docRef, config);
+    await setDoc(docRef, sanitizeForFirestore(config));
   } catch (err) {
     console.error("Failed to save Supabase config to Firestore:", err);
     throw err;

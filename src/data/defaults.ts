@@ -4,9 +4,9 @@ export const DEFAULT_CONFIG: SystemConfig = {
   branding: {
     name: "GD Goenka Public School",
     tagline: "Higher Stronger Brighter • School Leadership Cabinet",
-    logo: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" class="w-16 h-16"><circle cx="100" cy="100" r="92" fill="#0b3c8c" /><path d="M46 142 C65 125, 95 95, 115 75 C135 55, 150 48, 162 60 C163 61, 161 63, 158 63 C145 64, 130 75, 122 92 C115 108, 118 120, 128 132 C112 125, 95 118, 75 125 C65 128, 55 135, 46 142 Z" fill="#d4af37" /></svg>`,
-    primaryColor: "#0f172a", // Slate 900
-    secondaryColor: "#fbbf24", // Amber 400
+    logo: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" class="w-16 h-16"><circle cx="100" cy="100" r="92" fill="#0b3c8c" /><path d="M 60 176 C 85 145, 115 110, 120 95 C 125 78, 150 76, 162 74 C 155 77, 146 80, 140 82 C 125 86, 115 74, 84 41 C 108 65, 124 95, 114 108 C 104 121, 92 142, 60 176 Z" fill="#cca251" /></svg>`,
+    primaryColor: "#0b3c8c", // Royal Blue
+    secondaryColor: "#ffffff", // White
     academicSession: "2026-2027"
   },
   applicationDeadline: "2026-08-31",

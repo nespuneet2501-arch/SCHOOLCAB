@@ -134,24 +134,48 @@ async function loadStateFromFirestore() {
   }
 }
 
+// Helper to recursively remove undefined fields for Firestore compatibility
+function sanitizeForFirestore(obj: any): any {
+  if (obj === null || obj === undefined) {
+    return null;
+  }
+  if (Array.isArray(obj)) {
+    return obj.map(item => sanitizeForFirestore(item));
+  }
+  if (typeof obj === "object") {
+    if (obj instanceof Date) {
+      return obj.toISOString();
+    }
+    const cleanObj: any = {};
+    for (const key of Object.keys(obj)) {
+      const val = obj[key];
+      if (val !== undefined) {
+        cleanObj[key] = sanitizeForFirestore(val);
+      }
+    }
+    return cleanObj;
+  }
+  return obj;
+}
+
 // Helper to save state to Firestore (non-blocking)
 async function saveStateToFirestore() {
   if (!firestoreDb) return;
   try {
     // 1. Save system config
     const configDocRef = doc(firestoreDb, "system_config", "current_config");
-    await setDoc(configDocRef, state.config);
+    await setDoc(configDocRef, sanitizeForFirestore(state.config));
 
     // 2. Save Supabase config
     const supabaseDocRef = doc(firestoreDb, "system_config", "supabase_config");
-    await setDoc(supabaseDocRef, state.supabaseConfig);
+    await setDoc(supabaseDocRef, sanitizeForFirestore(state.supabaseConfig));
 
     // 3. Save applications in batches (max 500 per batch)
     if (state.applications.length > 0) {
       const appsBatch = writeBatch(firestoreDb);
       state.applications.forEach((app) => {
         const docRef = doc(firestoreDb, "applications", app.id);
-        appsBatch.set(docRef, app);
+        appsBatch.set(docRef, sanitizeForFirestore(app));
       });
       await appsBatch.commit();
     }
@@ -161,7 +185,7 @@ async function saveStateToFirestore() {
       const studentsBatch = writeBatch(firestoreDb);
       state.registeredStudents.forEach((student) => {
         const docRef = doc(firestoreDb, "registered_students", student.id);
-        studentsBatch.set(docRef, student);
+        studentsBatch.set(docRef, sanitizeForFirestore(student));
       });
       await studentsBatch.commit();
     }
@@ -172,7 +196,7 @@ async function saveStateToFirestore() {
       const recentLogs = state.emailLogs.slice(0, 100);
       recentLogs.forEach((log) => {
         const docRef = doc(firestoreDb, "email_logs", log.id);
-        logsBatch.set(docRef, log);
+        logsBatch.set(docRef, sanitizeForFirestore(log));
       });
       await logsBatch.commit();
     }
@@ -345,9 +369,9 @@ async function autoSetupSupabaseDb(connectionString: string) {
     try { fs.writeFileSync(DB_FILE_PATH, JSON.stringify(state, null, 2), "utf8"); } catch(e){}
     if (firestoreDb) {
       try {
-        await setDoc(doc(firestoreDb, "system_config", "supabase_config"), {
+        await setDoc(doc(firestoreDb, "system_config", "supabase_config"), sanitizeForFirestore({
           ...state.supabaseConfig
-        });
+        }));
         console.log("Automatic Setup: Updated successful connection status in Cloud Firestore!");
       } catch (fsErr) {
         console.error("Failed to update successful connection status in Cloud Firestore:", fsErr);
@@ -360,9 +384,9 @@ async function autoSetupSupabaseDb(connectionString: string) {
     try { fs.writeFileSync(DB_FILE_PATH, JSON.stringify(state, null, 2), "utf8"); } catch(e){}
     if (firestoreDb) {
       try {
-        await setDoc(doc(firestoreDb, "system_config", "supabase_config"), {
+        await setDoc(doc(firestoreDb, "system_config", "supabase_config"), sanitizeForFirestore({
           ...state.supabaseConfig
-        });
+        }));
       } catch (fsErr) {
         console.error("Failed to update error connection status in Cloud Firestore:", fsErr);
       }

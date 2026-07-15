@@ -281,10 +281,24 @@ export default function AdminPanel({
   // BRANDING STATE
   const [schoolName, setSchoolName] = useState(config.branding.name);
   const [tagline, setTagline] = useState(config.branding.tagline);
+  const [logo, setLogo] = useState(config.branding.logo || '');
   const [primaryColor, setPrimaryColor] = useState(config.branding.primaryColor);
   const [secondaryColor, setSecondaryColor] = useState(config.branding.secondaryColor);
   const [sessionName, setSessionName] = useState(config.branding.academicSession);
   const [deadline, setDeadline] = useState(config.applicationDeadline);
+
+  const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      if (event.target?.result) {
+        setLogo(event.target.result as string);
+      }
+    };
+    reader.readAsDataURL(file);
+  };
 
   // CABINETS STATE
   const [cabinets, setCabinets] = useState<Cabinet[]>(config.cabinets);
@@ -316,6 +330,7 @@ export default function AdminPanel({
         ...config.branding,
         name: schoolName.trim(),
         tagline: tagline.trim(),
+        logo,
         primaryColor,
         secondaryColor,
         academicSession: sessionName.trim()
@@ -481,13 +496,15 @@ export default function AdminPanel({
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             <div className="space-y-1">
-              <label className="text-xs font-bold text-slate-600 font-sans">School Corporate Name</label>
+              <label className="text-xs font-bold text-slate-600 font-sans">School/Branch Name</label>
               <input
                 type="text"
                 value={schoolName}
                 onChange={e => setSchoolName(e.target.value)}
+                placeholder="e.g. GD Goenka Public School, Agra"
                 className="w-full px-3.5 py-2 text-xs border border-slate-350 rounded-lg text-slate-800 focus:ring-1 focus:ring-slate-900"
               />
+              <p className="text-[10px] text-slate-400">Cities like Agra, Dehradun, etc. can set their branch-specific name here.</p>
             </div>
 
             <div className="space-y-1">
@@ -518,6 +535,41 @@ export default function AdminPanel({
                 onChange={e => setDeadline(e.target.value)}
                 className="w-full px-3.5 py-2 text-xs border border-slate-350 rounded-lg text-slate-800 focus:ring-1 focus:ring-slate-900 bg-white"
               />
+            </div>
+
+            {/* Branch Logo Uploader */}
+            <div className="space-y-1 col-span-1 md:col-span-2">
+              <label className="text-xs font-bold text-slate-600 font-sans block">Branch Logo</label>
+              <div className="flex flex-col sm:flex-row items-center gap-4 border border-slate-200 rounded-xl p-4 bg-slate-50">
+                <div className="w-16 h-16 bg-white rounded-lg p-2 border border-slate-200 flex items-center justify-center flex-shrink-0 shadow-inner overflow-hidden">
+                  {logo ? (
+                    logo.trim().startsWith('<svg') ? (
+                      <div dangerouslySetInnerHTML={{ __html: logo }} className="w-full h-full text-slate-700 flex items-center justify-center" />
+                    ) : (
+                      <img src={logo} alt="School Logo" className="w-full h-full object-contain" />
+                    )
+                  ) : (
+                    <span className="text-[10px] text-slate-400">No Logo</span>
+                  )}
+                </div>
+                <div className="space-y-1.5 flex-1 w-full text-center sm:text-left">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleLogoUpload}
+                    className="hidden"
+                    id="logo-upload-input"
+                  />
+                  <label
+                    htmlFor="logo-upload-input"
+                    className="px-3 py-1.5 bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 rounded-lg text-xs font-semibold cursor-pointer inline-flex items-center gap-1.5 transition-all shadow-xs"
+                  >
+                    <Upload className="w-3.5 h-3.5" />
+                    <span>Choose Branch Logo File</span>
+                  </label>
+                  <p className="text-[10px] text-slate-400">Upload branch logo (PNG, JPG, or SVG). Automatically synchronized to Cloud Firestore.</p>
+                </div>
+              </div>
             </div>
           </div>
 
