@@ -7,7 +7,10 @@ export const DEFAULT_CONFIG: SystemConfig = {
     logo: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" class="w-16 h-16"><circle cx="100" cy="100" r="92" fill="#0b3c8c" /><path d="M 60 176 C 85 145, 115 110, 120 95 C 125 78, 150 76, 162 74 C 155 77, 146 80, 140 82 C 125 86, 115 74, 84 41 C 108 65, 124 95, 114 108 C 104 121, 92 142, 60 176 Z" fill="#cca251" /></svg>`,
     primaryColor: "#0b3c8c", // Royal Blue
     secondaryColor: "#ffffff", // White
-    academicSession: "2026-2027"
+    academicSession: "2026-2027",
+    studentPassword: "student23",
+    teacherPassword: "teacher123",
+    adminPassword: "admin123"
   },
   applicationDeadline: "2026-08-31",
   cabinets: [

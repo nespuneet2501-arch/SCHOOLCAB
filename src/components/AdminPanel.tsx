@@ -286,6 +286,9 @@ export default function AdminPanel({
   const [secondaryColor, setSecondaryColor] = useState(config.branding.secondaryColor);
   const [sessionName, setSessionName] = useState(config.branding.academicSession);
   const [deadline, setDeadline] = useState(config.applicationDeadline);
+  const [studentPassword, setStudentPassword] = useState(config.branding.studentPassword || 'student23');
+  const [teacherPassword, setTeacherPassword] = useState(config.branding.teacherPassword || 'teacher123');
+  const [adminPassword, setAdminPassword] = useState(config.branding.adminPassword || 'admin123');
 
   const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -333,7 +336,10 @@ export default function AdminPanel({
         logo,
         primaryColor,
         secondaryColor,
-        academicSession: sessionName.trim()
+        academicSession: sessionName.trim(),
+        studentPassword: studentPassword.trim(),
+        teacherPassword: teacherPassword.trim(),
+        adminPassword: adminPassword.trim()
       }
     };
     onUpdateConfig(updated);
@@ -601,6 +607,45 @@ export default function AdminPanel({
                   <div className="font-bold text-slate-700">Secondary Accent Color</div>
                   <div className="text-slate-400 mt-0.5">{secondaryColor}</div>
                 </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Portal Access Passwords */}
+          <div className="pt-2 border-t border-slate-100">
+            <h4 className="text-xs font-bold text-slate-700 font-sans border-b border-slate-100 pb-1 mb-3">Portal Passwords</h4>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="space-y-1 bg-slate-50 border p-3 rounded-xl">
+                <label className="text-[11px] font-bold text-slate-600 font-sans block">Student Password</label>
+                <input
+                  type="text"
+                  value={studentPassword}
+                  onChange={e => setStudentPassword(e.target.value)}
+                  className="w-full px-3 py-1.5 text-xs border border-slate-300 rounded-lg text-slate-800 bg-white font-mono"
+                />
+                <p className="text-[9px] text-slate-400">Used with username <strong className="text-slate-700">student</strong></p>
+              </div>
+
+              <div className="space-y-1 bg-slate-50 border p-3 rounded-xl">
+                <label className="text-[11px] font-bold text-slate-600 font-sans block">Teacher Password</label>
+                <input
+                  type="text"
+                  value={teacherPassword}
+                  onChange={e => setTeacherPassword(e.target.value)}
+                  className="w-full px-3 py-1.5 text-xs border border-slate-300 rounded-lg text-slate-800 bg-white font-mono"
+                />
+                <p className="text-[9px] text-slate-400">Used with username <strong className="text-slate-700">teacher</strong></p>
+              </div>
+
+              <div className="space-y-1 bg-slate-50 border p-3 rounded-xl">
+                <label className="text-[11px] font-bold text-slate-600 font-sans block">Admin Password</label>
+                <input
+                  type="text"
+                  value={adminPassword}
+                  onChange={e => setAdminPassword(e.target.value)}
+                  className="w-full px-3 py-1.5 text-xs border border-slate-300 rounded-lg text-slate-800 bg-white font-mono"
+                />
+                <p className="text-[9px] text-slate-400">Used with username <strong className="text-slate-700">admin</strong></p>
               </div>
             </div>
           </div>

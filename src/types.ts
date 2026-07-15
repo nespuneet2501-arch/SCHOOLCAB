@@ -115,6 +115,9 @@ export interface SchoolBranding {
   primaryColor: string; // hex
   secondaryColor: string; // hex
   academicSession: string; // e.g. "2026-2027"
+  studentPassword?: string;
+  teacherPassword?: string;
+  adminPassword?: string;
 }
 
 export interface SystemConfig {
