@@ -4,6 +4,8 @@ import fs from "fs";
 import { GoogleGenAI, Type } from "@google/genai";
 import dotenv from "dotenv";
 import { createServer as createViteServer } from "vite";
+import { initializeApp } from "firebase/app";
+import { getFirestore, doc, getDoc, setDoc, getDocs, collection, writeBatch } from "firebase/firestore";
 import { AppState, StudentApplication, SystemConfig, Cabinet, Post, EvaluationCriterion, AchievementMatrixItem, EmailLog, RegisteredStudent } from "./src/types.js";
 
 dotenv.config();
@@ -42,6 +44,144 @@ if (geminiApiKey && geminiApiKey !== "MY_GEMINI_API_KEY") {
 }
 
 const DB_FILE_PATH = path.join(process.cwd(), "db-store.json");
+
+// Initialize Firebase on server side
+let firebaseApp: any;
+let firestoreDb: any;
+try {
+  const firebaseConfigPath = path.join(process.cwd(), "firebase-applet-config.json");
+  if (fs.existsSync(firebaseConfigPath)) {
+    const firebaseConfig = JSON.parse(fs.readFileSync(firebaseConfigPath, "utf8"));
+    firebaseApp = initializeApp(firebaseConfig);
+    firestoreDb = getFirestore(firebaseApp, firebaseConfig.firestoreDatabaseId || "(default)");
+    console.log("Firebase initialized on server side with custom database:", firebaseConfig.firestoreDatabaseId);
+  } else {
+    console.warn("firebase-applet-config.json not found on server side.");
+  }
+} catch (fbErr) {
+  console.error("Failed to initialize Firebase on server side:", fbErr);
+}
+
+// Helper to load state from Firestore on boot
+async function loadStateFromFirestore() {
+  if (!firestoreDb) return;
+  try {
+    console.log("Fetching latest state from Cloud Firestore...");
+    
+    // 1. Fetch system config
+    const configDocRef = doc(firestoreDb, "system_config", "current_config");
+    const configSnap = await getDoc(configDocRef);
+    if (configSnap.exists()) {
+      state.config = configSnap.data() as SystemConfig;
+      console.log("Loaded system config from Firestore.");
+    }
+
+    // 2. Fetch Supabase config
+    const supabaseDocRef = doc(firestoreDb, "system_config", "supabase_config");
+    const supabaseSnap = await getDoc(supabaseDocRef);
+    if (supabaseSnap.exists()) {
+      const fbSupabaseConfig = supabaseSnap.data() as any;
+      if (fbSupabaseConfig) {
+        state.supabaseConfig = {
+          connectionString: fbSupabaseConfig.connectionString || '',
+          connected: fbSupabaseConfig.connected || false,
+          useSupabase: fbSupabaseConfig.useSupabase || false,
+          lastSyncedAt: fbSupabaseConfig.lastSyncedAt || ''
+        };
+        console.log("Loaded Supabase config from Firestore. Connected:", state.supabaseConfig.connected, "useSupabase:", state.supabaseConfig.useSupabase);
+      }
+    }
+
+    // 3. Fetch applications
+    const appsColRef = collection(firestoreDb, "applications");
+    const appsSnap = await getDocs(appsColRef);
+    const apps: StudentApplication[] = [];
+    appsSnap.forEach((doc) => {
+      apps.push(doc.data() as StudentApplication);
+    });
+    if (apps.length > 0) {
+      state.applications = apps;
+      console.log(`Loaded ${apps.length} applications from Firestore.`);
+    }
+
+    // 4. Fetch registered students
+    const studentsColRef = collection(firestoreDb, "registered_students");
+    const studentsSnap = await getDocs(studentsColRef);
+    const students: RegisteredStudent[] = [];
+    studentsSnap.forEach((doc) => {
+      students.push(doc.data() as RegisteredStudent);
+    });
+    if (students.length > 0) {
+      state.registeredStudents = students;
+      console.log(`Loaded ${students.length} registered students from Firestore.`);
+    }
+
+    // 5. Fetch email logs
+    const logsColRef = collection(firestoreDb, "email_logs");
+    const logsSnap = await getDocs(logsColRef);
+    const logs: EmailLog[] = [];
+    logsSnap.forEach((doc) => {
+      logs.push(doc.data() as EmailLog);
+    });
+    if (logs.length > 0) {
+      state.emailLogs = logs;
+      console.log(`Loaded ${logs.length} email logs from Firestore.`);
+    }
+
+    console.log("Cloud Firestore state synchronization complete.");
+  } catch (err) {
+    console.error("Failed to sync from Firestore on startup:", err);
+  }
+}
+
+// Helper to save state to Firestore (non-blocking)
+async function saveStateToFirestore() {
+  if (!firestoreDb) return;
+  try {
+    // 1. Save system config
+    const configDocRef = doc(firestoreDb, "system_config", "current_config");
+    await setDoc(configDocRef, state.config);
+
+    // 2. Save Supabase config
+    const supabaseDocRef = doc(firestoreDb, "system_config", "supabase_config");
+    await setDoc(supabaseDocRef, state.supabaseConfig);
+
+    // 3. Save applications in batches (max 500 per batch)
+    if (state.applications.length > 0) {
+      const appsBatch = writeBatch(firestoreDb);
+      state.applications.forEach((app) => {
+        const docRef = doc(firestoreDb, "applications", app.id);
+        appsBatch.set(docRef, app);
+      });
+      await appsBatch.commit();
+    }
+
+    // 4. Save registered students in batches
+    if (state.registeredStudents.length > 0) {
+      const studentsBatch = writeBatch(firestoreDb);
+      state.registeredStudents.forEach((student) => {
+        const docRef = doc(firestoreDb, "registered_students", student.id);
+        studentsBatch.set(docRef, student);
+      });
+      await studentsBatch.commit();
+    }
+
+    // 5. Save most recent email logs in batches to prevent hitting Firestore limits
+    if (state.emailLogs.length > 0) {
+      const logsBatch = writeBatch(firestoreDb);
+      const recentLogs = state.emailLogs.slice(0, 100);
+      recentLogs.forEach((log) => {
+        const docRef = doc(firestoreDb, "email_logs", log.id);
+        logsBatch.set(docRef, log);
+      });
+      await logsBatch.commit();
+    }
+
+    console.log("State successfully synchronized to Cloud Firestore.");
+  } catch (err) {
+    console.error("Failed to save state to Firestore:", err);
+  }
+}
 
 // Default initial config
 const DEFAULT_CONFIG: SystemConfig = {
@@ -665,7 +805,7 @@ async function syncFromSupabase() {
 }
 
 // Ensure data load from file
-function loadDatabase() {
+async function loadDatabase() {
   try {
     if (fs.existsSync(DB_FILE_PATH)) {
       const raw = fs.readFileSync(DB_FILE_PATH, "utf8");
@@ -678,17 +818,20 @@ function loadDatabase() {
         supabaseConfig: parsed.supabaseConfig || DEFAULT_SUPABASE_CONFIG
       };
       console.log("Database successfully loaded from persistent store.");
-      
-      // Attempt to sync from Supabase asynchronously if enabled
-      if (state.supabaseConfig.useSupabase && state.supabaseConfig.connectionString) {
-        syncFromSupabase().catch(e => console.error("Initial Supabase sync error:", e));
-      }
     } else {
       console.log("No persistent database found. Initializing with seeded defaults...");
       saveDatabase();
     }
   } catch (err) {
     console.error("Failed to load database. Falling back to default memory states.", err);
+  }
+
+  // Load latest state from Cloud Firestore to override ephemeral local files
+  await loadStateFromFirestore();
+
+  // Attempt to sync from Supabase asynchronously if enabled
+  if (state.supabaseConfig.useSupabase && state.supabaseConfig.connectionString) {
+    syncFromSupabase().catch(e => console.error("Initial Supabase sync error:", e));
   }
 }
 
@@ -788,6 +931,9 @@ function saveDatabase() {
     recalculateRanks();
     fs.writeFileSync(DB_FILE_PATH, JSON.stringify(state, null, 2), "utf8");
     
+    // Sync to Cloud Firestore (non-blocking)
+    saveStateToFirestore().catch(e => console.error("Async Firestore sync error:", e));
+
     // Background sync to Supabase (non-blocking)
     if (state.supabaseConfig.useSupabase && state.supabaseConfig.connectionString) {
       syncDatabaseToSupabase().catch(e => console.error("Async Supabase sync error:", e));
