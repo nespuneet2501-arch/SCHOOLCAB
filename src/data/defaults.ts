@@ -8,11 +8,12 @@ export const DEFAULT_CONFIG: SystemConfig = {
     primaryColor: "#0b3c8c", // Royal Blue
     secondaryColor: "#ffffff", // White
     academicSession: "2026-2027",
-    studentPassword: "FLOW",
+    studentPassword: "student123",
     teacherPassword: "teacher123",
     adminPassword: "admin123"
   },
   applicationDeadline: "2026-08-31",
+  otpEnabled: false,
   cabinets: [
     { id: "junior", name: "Junior Cabinet", classRangeStart: 1, classRangeEnd: 5, enabled: true },
     { id: "senior", name: "Senior Cabinet", classRangeStart: 6, classRangeEnd: 11, enabled: true }

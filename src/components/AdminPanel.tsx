@@ -286,9 +286,10 @@ export default function AdminPanel({
   const [secondaryColor, setSecondaryColor] = useState(config.branding.secondaryColor);
   const [sessionName, setSessionName] = useState(config.branding.academicSession);
   const [deadline, setDeadline] = useState(config.applicationDeadline);
-  const [studentPassword, setStudentPassword] = useState(config.branding.studentPassword || 'FLOW');
+  const [studentPassword, setStudentPassword] = useState(config.branding.studentPassword || 'student123');
   const [teacherPassword, setTeacherPassword] = useState(config.branding.teacherPassword || 'teacher123');
   const [adminPassword, setAdminPassword] = useState(config.branding.adminPassword || 'admin123');
+  const [otpEnabled, setOtpEnabled] = useState(config.otpEnabled || false);
 
   const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -329,6 +330,7 @@ export default function AdminPanel({
     const updated: SystemConfig = {
       ...config,
       applicationDeadline: deadline,
+      otpEnabled,
       branding: {
         ...config.branding,
         name: schoolName.trim(),
@@ -647,6 +649,27 @@ export default function AdminPanel({
                 />
                 <p className="text-[9px] text-slate-400">Used with username <strong className="text-slate-700">admin</strong></p>
               </div>
+            </div>
+          </div>
+
+          {/* Mobile OTP Verification Security */}
+          <div className="pt-4 border-t border-slate-100">
+            <div className="flex items-center justify-between bg-amber-50/50 border border-amber-200/50 p-4 rounded-xl">
+              <div className="space-y-0.5">
+                <h4 className="text-xs font-bold text-slate-800 font-sans">Mobile OTP Verification Facility</h4>
+                <p className="text-[10px] text-slate-500">
+                  Require dynamic 4-digit mobile OTP verification upon student candidate registration to obtain verified mobile numbers and prevent unauthorized submissions.
+                </p>
+              </div>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={otpEnabled}
+                  onChange={e => setOtpEnabled(e.target.checked)}
+                  className="sr-only peer"
+                />
+                <div className="w-9 h-5 bg-slate-250 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-slate-900"></div>
+              </label>
             </div>
           </div>
 

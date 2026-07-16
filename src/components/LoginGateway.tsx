@@ -27,7 +27,7 @@ export default function LoginGateway({ branding, onLoginSuccess }: LoginGatewayP
     // Defaults from branding configurations if specified
     if (roleType === 'admin') return branding.adminPassword || 'admin123';
     if (roleType === 'panel') return branding.teacherPassword || 'teacher123';
-    return branding.studentPassword || 'FLOW';
+    return branding.studentPassword || 'student123';
   };
 
   // Check if a password is a default one
@@ -36,15 +36,15 @@ export default function LoginGateway({ branding, onLoginSuccess }: LoginGatewayP
       ? (branding.adminPassword || 'admin123')
       : roleType === 'panel'
         ? (branding.teacherPassword || 'teacher123')
-        : (branding.studentPassword || 'FLOW');
+        : (branding.studentPassword || 'student123');
     
     const hardcodedDefault = roleType === 'admin' 
       ? 'admin123' 
       : roleType === 'panel' 
         ? 'teacher123' 
-        : 'FLOW';
+        : 'student123';
 
-    return pass === defaultPass || pass === hardcodedDefault || (roleType === 'student' && (pass === 'student' || pass === 'student23'));
+    return pass === defaultPass || pass === hardcodedDefault || (roleType === 'student' && (pass === 'student' || pass === 'student23' || pass === 'FLOW'));
   };
 
   const handleLoginSubmit = (e: React.FormEvent) => {
@@ -66,8 +66,8 @@ export default function LoginGateway({ branding, onLoginSuccess }: LoginGatewayP
     const isStudentDefaultMatch = role === 'student' && isDefaultPassword('student', password);
 
     if (password === correctPassword || isStudentDefaultMatch) {
-      // Is it a default password? If yes, force them to change it (but bypass for student role to prevent local lockout)
-      if (isDefaultPassword(role, password) && role !== 'student') {
+      // Is it a default password? If yes, force them to change it
+      if (isDefaultPassword(role, password)) {
         setIsChangingPassword(true);
       } else {
         // Correct changed password entered, log in immediately
@@ -263,9 +263,15 @@ export default function LoginGateway({ branding, onLoginSuccess }: LoginGatewayP
                   <p className="text-[11px] text-slate-400">
                     Username: <strong className="text-white font-bold">{role === 'panel' ? 'teacher' : role}</strong>
                   </p>
-                  <p className="text-[11px] text-slate-400">
-                    Password: <strong className="text-amber-400 font-mono font-bold">{getActivePassword(role)}</strong>
-                  </p>
+                  {role === 'student' ? (
+                    <p className="text-[11px] text-slate-400">
+                      Password: <strong className="text-amber-400 font-mono font-bold">{getActivePassword('student')}</strong>
+                    </p>
+                  ) : (
+                    <p className="text-[10px] text-slate-500 italic">
+                      Password is kept confidential for security.
+                    </p>
+                  )}
                 </div>
               </form>
             </>

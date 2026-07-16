@@ -127,6 +127,7 @@ export interface SystemConfig {
   achievementMatrix: AchievementMatrixItem[];
   branding: SchoolBranding;
   applicationDeadline: string;
+  otpEnabled?: boolean;
 }
 
 export interface RegisteredStudent {
